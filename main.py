@@ -15,7 +15,7 @@ from alerts import send_email_alert
 
 
 def is_first_nse_trading_day_of_month(today: date) -> bool:
-    if today.day > 4:
+    if today.day > 5:
         return False
     try:
         nse = mcal.get_calendar("NSE")

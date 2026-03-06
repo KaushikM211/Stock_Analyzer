@@ -31,4 +31,4 @@ jobs:
           GMAIL_SENDER:    ${{ secrets.GMAIL_SENDER }}
           GMAIL_PASSWORD:  ${{ secrets.GMAIL_PASSWORD }}
           GMAIL_RECIPIENT: ${{ secrets.GMAIL_RECIPIENT }}
-        run: uv run python main.py --force
+        run: uv run python main.py

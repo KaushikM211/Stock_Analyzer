@@ -10,7 +10,6 @@ from tqdm import tqdm
 from config import (
     LOWER_LIMIT,
     UPPER_LIMIT,
-    MACRO_MONTH_WEIGHTS,
     MIN_WEIGHTED_ROI,
     MIN_AVG_DAILY_TURNOVER,
     MOMENTUM_TOLERANCE,
@@ -25,24 +24,16 @@ from data import (
     fetch_best_available,
     fetch_sector_momentum,
     get_top_sectors,
+    passes_fundamental_filter,
 )
 from ensemble import ensemble_forecast
 
 warnings.filterwarnings("ignore")
 
-RESULT_COLUMNS = [
-    "Price_Band",
-    "Stock",
-    "Buy_Price",
-    "Exit_Target",
-    "Weighted_ROI_%",
-    "Min_Hold_Until",  # 8 months from today — don't sell before this
-    "Best_Sell_Date",  # Prophet's natural peak within the window
-    "Forecast_Expires",  # 12 months from today — beyond this is unreliable
-    "Avg_Daily_Turnover_Cr",
-    "Liquidity",
-    "Data_Days",
-]
+# Confidence interval width threshold — if Prophet's (yhat_upper - yhat_lower)
+# exceeds this fraction of the forecast price, the model is too uncertain
+# e.g. 0.40 means: if the band is wider than 40% of the predicted price, stop trusting it
+CONFIDENCE_THRESHOLD = 0.40
 
 
 def _liquidity_label(avg_daily_turnover: float) -> str:
@@ -60,6 +51,46 @@ def _get_band_label(price: float) -> str:
     return "Other"
 
 
+def _get_confidence_expiry(
+    prophet_yhat: pd.Series,
+    prophet_conf_width: pd.Series,
+    window_start_idx: int,
+) -> str:
+    """
+    Returns the first date after window_start where Prophet's confidence
+    interval width exceeds CONFIDENCE_THRESHOLD × forecast price.
+
+    This is stock-specific — volatile stocks lose confidence sooner,
+    stable stocks maintain confidence longer into the forecast window.
+
+    Falls back to the last day of the forecast window if always confident.
+    """
+    try:
+        base_index = pd.bdate_range(
+            start=prophet_yhat.index[0], periods=len(prophet_yhat)
+        )
+        yhat_aligned = prophet_yhat.reindex(base_index).interpolate()
+        width_aligned = prophet_conf_width.reindex(base_index).interpolate()
+
+        # Only look from window_start onward
+        yhat_window = yhat_aligned.iloc[window_start_idx:]
+        width_window = width_aligned.iloc[window_start_idx:]
+
+        # Relative confidence width = band width / forecast price
+        rel_width = width_window / (yhat_window.abs() + 1e-9)
+
+        # First date where uncertainty exceeds threshold
+        uncertain = rel_width[rel_width > CONFIDENCE_THRESHOLD]
+        if not uncertain.empty:
+            return uncertain.index[0].strftime("%d %b %Y")
+
+        # Model stays confident through entire window — return last date
+        return yhat_window.index[-1].strftime("%d %b %Y")
+
+    except Exception:
+        return prophet_yhat.index[-1].strftime("%d %b %Y")
+
+
 def analyze_and_predict(
     lower_limit: int = LOWER_LIMIT,
     upper_limit: int = UPPER_LIMIT,
@@ -67,22 +98,15 @@ def analyze_and_predict(
     """
     Scans all Nifty 500 stocks and returns picks organised by price band.
 
-    Tenure logic:
-        - Minimum hold is 8 months (TARGET_WINDOW_START = trading day 168)
-        - Forecast reliability ends at 12 months (TARGET_WINDOW_END = day 252)
-        - Beyond 12 months the models are extrapolating too far — not reported
-        - Best_Sell_Date is wherever Prophet naturally peaks in the 8–12mo window
-          It could be month 8, month 10, or month 12 — not forced to the end
-
-    ROI  : weighted ensemble price (all 3 models)
-    Dates: Prophet exclusively — only model with calendar awareness
-           Ridge always peaks at end of window (no calendar sense)
-           XGBoost is flat after 63 days (unreliable for dating)
+    Forecast_Expires is now stock-specific:
+        - Derived from Prophet's confidence interval width
+        - Wider band = model is less certain = earlier expiry
+        - Volatile stocks expire sooner, stable stocks expire later
+        - Not a fixed date for all stocks
     """
     tickers = get_nifty500_tickers()
     recommendations = []
 
-    # ── Sector momentum pre-scan ──
     print("Fetching sector momentum scores...")
     sector_momentum = fetch_sector_momentum()
     top_sectors = get_top_sectors(sector_momentum)
@@ -99,7 +123,13 @@ def analyze_and_predict(
             if not (lower_limit <= curr_price <= upper_limit):
                 continue
 
-            # ── Liquidity check (before models — cheap filter) ──
+            # ── Fundamental filter (Layer 1 — before any model runs) ──
+            passed, reason = passes_fundamental_filter(ticker)
+            if not passed:
+                print(f"  {ticker} filtered: {reason}")
+                continue
+
+            # ── Liquidity check ──
             lookback = min(20, len(close))
             avg_daily_turnover = float(
                 (close.tail(lookback) * volume.tail(lookback)).mean()
@@ -116,8 +146,7 @@ def analyze_and_predict(
                 continue
 
             # ── Ensemble forecast ──
-            # Returns (ensemble_price_path, prophet_price_path)
-            forecast_series, prophet_series = ensemble_forecast(
+            forecast_series, prophet_series, prophet_conf_width = ensemble_forecast(
                 close, volume, horizon=FORECAST_HORIZON
             )
             if forecast_series is None:
@@ -130,17 +159,22 @@ def analyze_and_predict(
             if ensemble_window.empty:
                 continue
 
-            peak_price = float(ensemble_window.max())
-            macro_adj = 1 + MACRO_MONTH_WEIGHTS.get(ensemble_window.idxmax().month, 0)
-            adjusted_peak = peak_price * macro_adj
+            adjusted_peak = float(ensemble_window.max())
             weighted_roi = ((adjusted_peak - curr_price) / curr_price) * 100
 
-            # ── Dates from Prophet in 8–12 month window ──
+            # ── Dates from Prophet ──
             prophet_window = prophet_series.iloc[TARGET_WINDOW_START:TARGET_WINDOW_END]
+            min_hold_until = prophet_window.index[0]
+            best_sell_date = prophet_window.idxmax()
 
-            min_hold_until = prophet_window.index[0]  # earliest allowed sell date
-            best_sell_date = prophet_window.idxmax()  # Prophet's natural peak
-            forecast_expires = prophet_window.index[-1]  # reliability cutoff
+            # Stock-specific expiry — when Prophet loses confidence
+            forecast_expires = _get_confidence_expiry(
+                prophet_series,
+                prophet_conf_width
+                if prophet_conf_width is not None
+                else pd.Series(dtype=float),
+                TARGET_WINDOW_START,
+            )
 
             band_label = _get_band_label(curr_price)
 
@@ -148,6 +182,7 @@ def analyze_and_predict(
                 f"{ticker} | ₹{curr_price:.2f} [{band_label}] "
                 f"| ROI: {weighted_roi:.1f}% "
                 f"| Best sell: {best_sell_date.strftime('%b %Y')} "
+                f"| Expires: {forecast_expires} "
                 f"| ₹{avg_daily_turnover / 1e7:.1f}Cr/day"
             )
 
@@ -161,7 +196,7 @@ def analyze_and_predict(
                         "Weighted_ROI_%": round(weighted_roi, 2),
                         "Min_Hold_Until": min_hold_until.strftime("%d %b %Y"),
                         "Best_Sell_Date": best_sell_date.strftime("%d %b %Y"),
-                        "Forecast_Expires": forecast_expires.strftime("%d %b %Y"),
+                        "Forecast_Expires": forecast_expires,
                         "Avg_Daily_Turnover_Cr": round(avg_daily_turnover / 1e7, 2),
                         "Liquidity": liquidity,
                         "Data_Days": len(close),
@@ -180,7 +215,6 @@ def analyze_and_predict(
 
     df_all = pd.DataFrame(recommendations)
 
-    # ── Split into price bands, top N per band by ROI% ──
     results = {}
     for low, high in PRICE_BANDS:
         label = f"₹{low}–₹{high}"

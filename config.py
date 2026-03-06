@@ -3,8 +3,8 @@
 # ─────────────────────────────────────────────
 
 # Stock price filter (overall bounds)
-LOWER_LIMIT = 150
-UPPER_LIMIT = 6000
+LOWER_LIMIT = 130
+UPPER_LIMIT = 8000
 
 # Price band buckets — ₹500 windows within lower/upper limits
 # Each bucket gets its own top-N picks in the final output
@@ -20,6 +20,8 @@ PRICE_BANDS = [
     (4000, 4500),
     (4500, 5000),
     (5000, 6000),
+    (6000, 7000),
+    (7000, 8000),
 ]
 
 # Top N picks per price band (instead of top 20 overall)
@@ -36,7 +38,7 @@ TARGET_WINDOW_START = 168  # trading day ~8 months
 TARGET_WINDOW_END = 252  # trading day ~12 months
 
 # ROI thresholds
-MIN_WEIGHTED_ROI = 12.0  # Minimum weighted ensemble ROI to qualify
+MIN_WEIGHTED_ROI = 9.0  # Minimum weighted ensemble ROI to qualify
 
 # Minimum average daily turnover to be considered liquid enough to trade
 MIN_AVG_DAILY_TURNOVER = 1e7  # ₹1 Crore/day
@@ -45,14 +47,18 @@ MIN_AVG_DAILY_TURNOVER = 1e7  # ₹1 Crore/day
 MODEL_WEIGHTS = {
     "prophet": 0.40,  # Long-term trend + macro seasonality
     "xgb": 0.35,  # Near-term directional signal
-    "ridge": 0.25,  # Conservative anchor — capped annualised return
+    "holt": 0.25,  # Conservative anchor — damped trend, realistic decay
 }
 
 # Per-model annualised return caps (applied inside each model)
-# These are the single most important numbers for realistic output
-# NSE large/mid cap realistic 1yr return range: -20% to +35%
-MAX_ANNUAL_RETURN = 0.35
-MIN_ANNUAL_RETURN = -0.20
+# Single most important lever for realistic output.
+# Based on NSE Nifty 500 median 1yr returns (2010–2024):
+#   - Top quartile stocks: ~20–25% in a normal year
+#   - Exceptional years (2020 recovery, 2023 bull): up to 30%
+#   - We cap at 25% to stay grounded — models will still rank
+#     relatively (higher cap stocks still rank higher)
+MAX_ANNUAL_RETURN = 0.25  # 25% max — realistic strong performer
+MIN_ANNUAL_RETURN = -0.15  # -15% floor — accounts for corrections
 
 # Momentum pre-filter tolerance (skip if short MA is below long MA by this %)
 MOMENTUM_TOLERANCE = 0.97
@@ -94,4 +100,4 @@ SECTOR_ETFS = {
 TOP_SECTORS_COUNT = 3
 
 # Data fetch periods to try (longest first)
-FETCH_PERIODS = ["2y", "1y", "6mo", "5mo", "4mo", "3mo", "2mo"]
+FETCH_PERIODS = ["2y", "1y", "6mo", "5mo", "4mo", "3mo", "2mo", "1mo"]

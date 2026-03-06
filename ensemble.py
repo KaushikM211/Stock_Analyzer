@@ -5,45 +5,38 @@
 import pandas as pd
 
 from config import FORECAST_HORIZON, MODEL_WEIGHTS
-from models import xgboost_forecast, prophet_forecast, ridge_forecast
+from models import xgboost_forecast, prophet_forecast, holt_forecast
 
 
 def ensemble_forecast(
     close: pd.Series,
     volume: pd.Series,
     horizon: int = FORECAST_HORIZON,
-) -> tuple[pd.Series, pd.Series] | tuple[None, None]:
+) -> tuple[pd.Series, pd.Series, pd.Series | None] | tuple[None, None, None]:
     """
     Runs all 3 models and returns:
-        1. Weighted ensemble price path  — used for ROI calculation
-        2. Prophet yhat series           — used exclusively for peak date selection
+        1. Weighted ensemble price path   — used for ROI calculation
+        2. Prophet yhat series            — used for peak date selection
+        3. Prophet confidence width series — used for stock-specific expiry date
 
-    Why separate date source:
-        - Ridge has no calendar awareness — its peak is always the last forecast day
-        - XGBoost holds flat after 63 days — peak date is unreliable beyond near term
-        - Only Prophet models weekly + monthly seasonality and can meaningfully
-          identify WHEN within the 8–12 month window the price is likely to peak
-          (e.g. October festive rally vs March FY-end weakness)
+    Forecast_Expires is derived from when Prophet's confidence interval width
+    exceeds 40% of the forecast price — beyond this point the model is too
+    uncertain to be actionable. This is stock-specific, not a fixed date.
 
-    Weights (from config):
-        Prophet : 40%  — long-term trend + macro seasonality
-        XGBoost : 35%  — near-term directional signal
-        Ridge   : 25%  — conservative annualised trend anchor
-
-    Models that fail are dropped gracefully and weights renormalised.
-
-    Returns (ensemble_series, prophet_series) or (None, None) if all fail.
+    Returns (ensemble_series, prophet_yhat, prophet_conf_width) or (None, None, None)
     """
     forecasts = {}
     weights = {}
     prophet_yhat = None
+    prophet_conf_width = None
 
     # ── Prophet ──
     try:
-        p_yhat, _, _ = prophet_forecast(close, horizon)
+        p_yhat, p_upper, p_lower = prophet_forecast(close, horizon)
         forecasts["prophet"] = p_yhat
         weights["prophet"] = MODEL_WEIGHTS["prophet"]
-        prophet_yhat = p_yhat  # Keep separately for date picking
+        prophet_yhat = p_yhat
+        prophet_conf_width = p_upper - p_lower  # wider = less confident
     except Exception as e:
         print(f"    [Prophet] failed: {e}")
 
@@ -56,16 +49,16 @@ def ensemble_forecast(
     except Exception as e:
         print(f"    [XGBoost] failed: {e}")
 
-    # ── Ridge ──
+    # ── Holt Damped Trend ──
     try:
-        r_series = ridge_forecast(close, horizon)
-        forecasts["ridge"] = r_series
-        weights["ridge"] = MODEL_WEIGHTS["ridge"]
+        h_series = holt_forecast(close, horizon)
+        forecasts["holt"] = h_series
+        weights["holt"] = MODEL_WEIGHTS["holt"]
     except Exception as e:
-        print(f"    [Ridge] failed: {e}")
+        print(f"    [Holt] failed: {e}")
 
     if not forecasts:
-        return None, None
+        return None, None, None
 
     # Renormalise weights for any models that failed
     total_weight = sum(weights[k] for k in forecasts)
@@ -83,4 +76,4 @@ def ensemble_forecast(
     if prophet_yhat is None:
         prophet_yhat = combined
 
-    return combined, prophet_yhat
+    return combined, prophet_yhat, prophet_conf_width

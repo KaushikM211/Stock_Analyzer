@@ -4,7 +4,7 @@
 
 # Stock price filter (overall bounds)
 LOWER_LIMIT = 130
-UPPER_LIMIT = 8000
+UPPER_LIMIT = 15000
 
 # Price band buckets — ₹500 windows within lower/upper limits
 # Each bucket gets its own top-N picks in the final output
@@ -21,7 +21,7 @@ PRICE_BANDS = [
     (4500, 5000),
     (5000, 6000),
     (6000, 7000),
-    (7000, 8000),
+    (7000, 15000),
 ]
 
 # Top N picks per price band (instead of top 20 overall)

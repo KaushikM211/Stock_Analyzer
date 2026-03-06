@@ -2,8 +2,10 @@ name: Monthly Stock Analysis
 
 on:
   schedule:
-    - cron: "0 4 1 * *"   # 1st of every month at 4:00 AM UTC (9:30 AM IST)
-  workflow_dispatch:        # Allow manual trigger from GitHub UI
+    - cron: "0 4 1 * *"
+    - cron: "0 4 2 * *"
+    - cron: "0 4 3 * *"
+  workflow_dispatch:
 
 jobs:
   analyze:
@@ -26,7 +28,7 @@ jobs:
 
       - name: Run stock analyzer
         env:
-          WHATSAPP_TOKEN:    ${{ secrets.WHATSAPP_TOKEN }}
-          PHONE_NUMBER_ID:   ${{ secrets.PHONE_NUMBER_ID }}
-          RECIPIENT_PHONE:   ${{ secrets.RECIPIENT_PHONE }}
+          GMAIL_SENDER:    ${{ secrets.GMAIL_SENDER }}
+          GMAIL_PASSWORD:  ${{ secrets.GMAIL_PASSWORD }}
+          GMAIL_RECIPIENT: ${{ secrets.GMAIL_RECIPIENT }}
         run: uv run python main.py

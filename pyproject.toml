@@ -1,7 +1,7 @@
 [project]
 name = "indian-stock-prescriptive-model"
 version = "0.1.0"
-description = "Trend-based stock prediction for NSE with WhatsApp alerts"
+description = "Ensemble stock prediction for NSE with email alerts"
 dependencies = [
     "niftystocks",
     "yfinance>=0.2.0",

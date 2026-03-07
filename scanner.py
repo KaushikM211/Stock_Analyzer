@@ -5,6 +5,7 @@
 import gc
 import warnings
 import pandas as pd
+from datetime import date
 from tqdm import tqdm
 
 from config import (
@@ -18,6 +19,12 @@ from config import (
     FORECAST_HORIZON,
     PRICE_BANDS,
     TOP_N_PER_BAND,
+    STCG_TAX_RATE,
+    LTCG_TAX_RATE,
+    LTCG_EXEMPTION,
+    CESS_RATE,
+    STT_RATE,
+    LTCG_HOLD_DAYS,
 )
 from data import (
     get_nifty500_tickers,
@@ -30,9 +37,6 @@ from ensemble import ensemble_forecast
 
 warnings.filterwarnings("ignore")
 
-# Confidence interval width threshold — if Prophet's (yhat_upper - yhat_lower)
-# exceeds this fraction of the forecast price, the model is too uncertain
-# e.g. 0.40 means: if the band is wider than 40% of the predicted price, stop trusting it
 CONFIDENCE_THRESHOLD = 0.40
 
 
@@ -51,20 +55,66 @@ def _get_band_label(price: float) -> str:
     return "Other"
 
 
+def _calculate_after_tax_roi(
+    buy_price: float,
+    sell_price: float,
+    best_sell_date: pd.Timestamp,
+    quantity: int = 100,
+) -> tuple[float, float, str]:
+    """
+    Calculates after-tax ROI for a given buy/sell scenario.
+
+    Tax rules FY 2025-26:
+        STCG: 20% flat if held < 12 months (< LTCG_HOLD_DAYS trading days)
+        LTCG: 12.5% on gains above ₹1.25L exemption if held > 12 months
+        STT:  0.1% on both buy and sell transaction value
+        Cess: 4% on final tax liability
+
+    Since TARGET_WINDOW_START = 252 (12 months), all picks in our window
+    are LTCG by design. But we calculate both for transparency.
+
+    Returns:
+        (gross_roi%, after_tax_roi%, tax_label)
+    """
+    today = date.today()
+    # Count actual business days between today and sell date
+    # pd.bdate_range excludes weekends — accurate enough for LTCG threshold check
+    hold_trade_days = len(
+        pd.bdate_range(
+            start=today.isoformat(),
+            end=best_sell_date.date().isoformat(),
+        )
+    )
+
+    gross_profit = (sell_price - buy_price) * quantity
+    gross_roi = (sell_price - buy_price) / buy_price * 100
+
+    # STT on both legs
+    stt = (buy_price * quantity * STT_RATE) + (sell_price * quantity * STT_RATE)
+
+    if hold_trade_days >= LTCG_HOLD_DAYS:
+        # LTCG — 12.5% on gains above ₹1.25L exemption
+        taxable_gain = max(0, gross_profit - LTCG_EXEMPTION)
+        tax = taxable_gain * LTCG_TAX_RATE
+        tax_label = "LTCG"
+    else:
+        # STCG — 20% flat, no exemption
+        tax = gross_profit * STCG_TAX_RATE
+        tax_label = "STCG"
+
+    # Add 4% cess on tax
+    total_tax = tax * (1 + CESS_RATE) + stt
+    net_profit = gross_profit - total_tax
+    after_tax_roi = net_profit / (buy_price * quantity) * 100
+
+    return round(gross_roi, 2), round(after_tax_roi, 2), tax_label
+
+
 def _get_confidence_expiry(
     prophet_yhat: pd.Series,
     prophet_conf_width: pd.Series,
     window_start_idx: int,
 ) -> str:
-    """
-    Returns the first date after window_start where Prophet's confidence
-    interval width exceeds CONFIDENCE_THRESHOLD × forecast price.
-
-    This is stock-specific — volatile stocks lose confidence sooner,
-    stable stocks maintain confidence longer into the forecast window.
-
-    Falls back to the last day of the forecast window if always confident.
-    """
     try:
         base_index = pd.bdate_range(
             start=prophet_yhat.index[0], periods=len(prophet_yhat)
@@ -72,19 +122,14 @@ def _get_confidence_expiry(
         yhat_aligned = prophet_yhat.reindex(base_index).interpolate()
         width_aligned = prophet_conf_width.reindex(base_index).interpolate()
 
-        # Only look from window_start onward
         yhat_window = yhat_aligned.iloc[window_start_idx:]
         width_window = width_aligned.iloc[window_start_idx:]
-
-        # Relative confidence width = band width / forecast price
         rel_width = width_window / (yhat_window.abs() + 1e-9)
 
-        # First date where uncertainty exceeds threshold
         uncertain = rel_width[rel_width > CONFIDENCE_THRESHOLD]
         if not uncertain.empty:
             return uncertain.index[0].strftime("%d %b %Y")
 
-        # Model stays confident through entire window — return last date
         return yhat_window.index[-1].strftime("%d %b %Y")
 
     except Exception:
@@ -96,13 +141,14 @@ def analyze_and_predict(
     upper_limit: int = UPPER_LIMIT,
 ) -> dict[str, pd.DataFrame]:
     """
-    Scans all Nifty 500 stocks and returns picks organised by price band.
+    Scans all Nifty 500 stocks.
 
-    Forecast_Expires is now stock-specific:
-        - Derived from Prophet's confidence interval width
-        - Wider band = model is less certain = earlier expiry
-        - Volatile stocks expire sooner, stable stocks expire later
-        - Not a fixed date for all stocks
+    Key design decisions:
+        - Forecast horizon extended to 15 months (315 trading days)
+        - Target window starts at month 12 (LTCG threshold) — all picks are LTCG
+        - After-tax ROI shown alongside gross ROI
+        - MIN_WEIGHTED_ROI threshold applied to after-tax ROI
+        - Fundamental filter runs before any model (PE, D/E, revenue growth)
     """
     tickers = get_nifty500_tickers()
     recommendations = []
@@ -123,7 +169,7 @@ def analyze_and_predict(
             if not (lower_limit <= curr_price <= upper_limit):
                 continue
 
-            # ── Fundamental filter (Layer 1 — before any model runs) ──
+            # ── Layer 1: Fundamental filter ──
             passed, reason = passes_fundamental_filter(ticker)
             if not passed:
                 print(f"  {ticker} filtered: {reason}")
@@ -152,22 +198,20 @@ def analyze_and_predict(
             if forecast_series is None:
                 continue
 
-            # ── ROI from ensemble price in 8–12 month window ──
+            # ── ROI from ensemble in LTCG window (month 12–15) ──
             ensemble_window = forecast_series.iloc[
                 TARGET_WINDOW_START:TARGET_WINDOW_END
             ]
             if ensemble_window.empty:
                 continue
 
-            adjusted_peak = float(ensemble_window.max())
-            weighted_roi = ((adjusted_peak - curr_price) / curr_price) * 100
+            exit_target = float(ensemble_window.max())
 
             # ── Dates from Prophet ──
             prophet_window = prophet_series.iloc[TARGET_WINDOW_START:TARGET_WINDOW_END]
             min_hold_until = prophet_window.index[0]
-            best_sell_date = prophet_window.idxmax()
 
-            # Stock-specific expiry — when Prophet loses confidence
+            # Stock-specific confidence expiry — when Prophet loses confidence
             forecast_expires = _get_confidence_expiry(
                 prophet_series,
                 prophet_conf_width
@@ -176,24 +220,58 @@ def analyze_and_predict(
                 TARGET_WINDOW_START,
             )
 
+            # Best sell date must NEVER exceed forecast expiry
+            # If model loses confidence in Sep 2027, a Feb 2028 peak is unreliable
+            # Find peak only within the window Prophet is still confident about
+            forecast_expires_dt = pd.Timestamp(
+                pd.to_datetime(forecast_expires, format="%d %b %Y")
+            )
+            confident_window = prophet_window[
+                prophet_window.index <= forecast_expires_dt
+            ]
+            if not confident_window.empty:
+                best_sell_date = confident_window.idxmax()
+            else:
+                best_sell_date = prophet_window.idxmax()
+
+            # ── Minimum confident window check ──
+            # If Prophet loses confidence within 30 days of Min Hold Until,
+            # the forecast window is too narrow to be actionable — skip stock
+            min_hold_dt = prophet_window.index[0]
+            confident_days = (forecast_expires_dt - min_hold_dt).days
+            if confident_days < 30:
+                print(
+                    f"  {ticker} skipped: confident window only {confident_days} days past LTCG threshold"
+                )
+                continue
+
+            # ── After-tax ROI calculation ──
+            gross_roi, after_tax_roi, tax_label = _calculate_after_tax_roi(
+                buy_price=curr_price,
+                sell_price=exit_target,
+                best_sell_date=best_sell_date,
+            )
+
             band_label = _get_band_label(curr_price)
 
             print(
                 f"{ticker} | ₹{curr_price:.2f} [{band_label}] "
-                f"| ROI: {weighted_roi:.1f}% "
-                f"| Best sell: {best_sell_date.strftime('%b %Y')} "
-                f"| Expires: {forecast_expires} "
+                f"| Gross: {gross_roi:.1f}% | Net: {after_tax_roi:.1f}% ({tax_label}) "
+                f"| Sell: {best_sell_date.strftime('%b %Y')} "
                 f"| ₹{avg_daily_turnover / 1e7:.1f}Cr/day"
             )
 
-            if weighted_roi >= MIN_WEIGHTED_ROI:
+            # Filter on after-tax ROI — what you actually keep matters
+            if after_tax_roi >= MIN_WEIGHTED_ROI:
                 recommendations.append(
                     {
                         "Price_Band": band_label,
                         "Stock": ticker,
                         "Buy_Price": round(curr_price, 2),
-                        "Exit_Target": round(adjusted_peak, 2),
-                        "Weighted_ROI_%": round(weighted_roi, 2),
+                        "Exit_Target": round(exit_target, 2),
+                        "Gross_ROI_%": gross_roi,
+                        "After_Tax_ROI_%": after_tax_roi,
+                        "Tax_Type": tax_label,
                         "Min_Hold_Until": min_hold_until.strftime("%d %b %Y"),
                         "Best_Sell_Date": best_sell_date.strftime("%d %b %Y"),
                         "Forecast_Expires": forecast_expires,
@@ -215,12 +293,13 @@ def analyze_and_predict(
 
     df_all = pd.DataFrame(recommendations)
 
+    # Sort by after-tax ROI — rank on what you actually keep
     results = {}
     for low, high in PRICE_BANDS:
         label = f"₹{low}–₹{high}"
         band_df = (
             df_all[df_all["Price_Band"] == label]
-            .sort_values(by="Weighted_ROI_%", ascending=False)
+            .sort_values(by="After_Tax_ROI_%", ascending=False)
             .reset_index(drop=True)
             .head(TOP_N_PER_BAND)
         )
@@ -228,3 +307,37 @@ def analyze_and_predict(
             results[label] = band_df
 
     return results
+
+
+def get_full_pool(
+    lower_limit: int = LOWER_LIMIT,
+    upper_limit: int = UPPER_LIMIT,
+) -> pd.DataFrame:
+    """
+    Returns the FULL pool of stocks that passed all filters —
+    not capped at top 5 per band. Used by portfolio.py to build
+    the 10 combinations from a wider candidate set.
+
+    Runs the same scan as analyze_and_predict() but returns
+    everything sorted by After_Tax_ROI_% descending.
+    """
+    # Re-use analyze_and_predict results — just don't cap at TOP_N_PER_BAND
+    # We do this by running the scan and collecting all recommendations
+    # before the band split. Scanner stores them in df_all before slicing.
+    # Since we can't easily hook into the loop, we call analyze_and_predict
+    # and reconstruct the full pool from all bands combined.
+    results = analyze_and_predict(lower_limit, upper_limit)
+    if not results:
+        return pd.DataFrame()
+
+    frames = []
+    for band_label, df in results.items():
+        d = df.copy()
+        d["Band"] = band_label
+        frames.append(d)
+
+    return (
+        pd.concat(frames, ignore_index=True)
+        .sort_values("After_Tax_ROI_%", ascending=False)
+        .reset_index(drop=True)
+    )

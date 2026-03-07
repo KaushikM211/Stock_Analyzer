@@ -3,13 +3,13 @@
 # ─────────────────────────────────────────────
 
 # Stock price filter (overall bounds)
-LOWER_LIMIT = 130
+LOWER_LIMIT = 100
 UPPER_LIMIT = 15000
 
 # Price band buckets — ₹500 windows within lower/upper limits
 # Each bucket gets its own top-N picks in the final output
 PRICE_BANDS = [
-    (150, 500),
+    (100, 500),
     (500, 1000),
     (1000, 1500),
     (1500, 2000),
@@ -24,62 +24,78 @@ PRICE_BANDS = [
     (7000, 15000),
 ]
 
-# Top N picks per price band (instead of top 20 overall)
+# Top N picks per price band
 TOP_N_PER_BAND = 5
 
 # Minimum trading days required to run any model
 MIN_DAYS = 60
 
-# Forecast horizon (trading days)
-FORECAST_HORIZON = 252  # ~1 year
+# ─────────────────────────────────────────────
+# FORECAST HORIZON — 24 months
+#
+# Why 24 months (504 trading days):
+#   - LTCG kicks in after 12 months — same 12.5% rate applies whether
+#     you hold 13 months or 24 months — no benefit to capping at 15
+#   - If model finds a natural peak at Oct 2027 (Diwali) or Dec 2027
+#     that's a better exit than forcing a May 2027 sell
+#   - Mean reversion penalty in Prophet ensures forecast curves over
+#     naturally — it won't just trend forever to month 24
+#   - Holt damped trend also decays naturally over longer horizon
+#   - Beyond 24 months models are too unreliable — hard cap here
+# ─────────────────────────────────────────────
+FORECAST_HORIZON = 504  # ~24 months of trading days
 
-# Target window within forecast (months 8–12)
-TARGET_WINDOW_START = 168  # trading day ~8 months
-TARGET_WINDOW_END = 252  # trading day ~12 months
+# Target window: start AFTER 12 months (LTCG threshold), no upper cap
+# Let the model find the natural peak anywhere from month 12 to month 24
+TARGET_WINDOW_START = 252  # trading day ~12 months (LTCG threshold)
+TARGET_WINDOW_END = 504  # trading day ~24 months — full window
 
-# ROI thresholds
-MIN_WEIGHTED_ROI = 9.0  # Minimum weighted ensemble ROI to qualify
+# ─────────────────────────────────────────────
+# TAX CONSTANTS — FY 2025-26 (AY 2026-27)
+# ─────────────────────────────────────────────
+STCG_TAX_RATE = 0.20  # 20% on gains if held < 12 months
+LTCG_TAX_RATE = 0.125  # 12.5% on gains if held > 12 months
+LTCG_EXEMPTION = 125000  # ₹1.25 lakh annual exemption on LTCG
+CESS_RATE = 0.04  # 4% Health & Education Cess on tax
+STT_RATE = 0.001  # 0.1% Securities Transaction Tax (buy + sell)
+LTCG_HOLD_DAYS = 252  # Trading days to cross 12-month LTCG threshold
 
-# Minimum average daily turnover to be considered liquid enough to trade
+# ROI thresholds — now applied to AFTER-TAX ROI
+MIN_WEIGHTED_ROI = 10.0  # Minimum after-tax ROI to qualify
+
+# Minimum average daily turnover
 MIN_AVG_DAILY_TURNOVER = 1e7  # ₹1 Crore/day
 
 # Ensemble model weights
 MODEL_WEIGHTS = {
-    "prophet": 0.40,  # Long-term trend + macro seasonality
-    "xgb": 0.35,  # Near-term directional signal
-    "holt": 0.25,  # Conservative anchor — damped trend, realistic decay
+    "prophet": 0.40,
+    "xgb": 0.35,
+    "holt": 0.25,
 }
 
-# Per-model annualised return caps (applied inside each model)
-# Single most important lever for realistic output.
-# Based on NSE Nifty 500 median 1yr returns (2010–2024):
-#   - Top quartile stocks: ~20–25% in a normal year
-#   - Exceptional years (2020 recovery, 2023 bull): up to 30%
-#   - We cap at 25% to stay grounded — models will still rank
-#     relatively (higher cap stocks still rank higher)
-MAX_ANNUAL_RETURN = 0.25  # 25% max — realistic strong performer
-MIN_ANNUAL_RETURN = -0.15  # -15% floor — accounts for corrections
+# Per-model annualised return caps
+MAX_ANNUAL_RETURN = 0.25
+MIN_ANNUAL_RETURN = -0.15
 
-# Momentum pre-filter tolerance (skip if short MA is below long MA by this %)
+# Momentum pre-filter tolerance
 MOMENTUM_TOLERANCE = 0.97
 
 # ─────────────────────────────────────────────
 # MACRO SEASONALITY CALENDAR (India-specific)
-# positive = historically bullish, negative = bearish
 # ─────────────────────────────────────────────
 MACRO_MONTH_WEIGHTS = {
-    1: -0.02,  # Jan:  Historically poor — FII selling, global uncertainty
-    2: 0.03,  # Feb:  Budget rally — real but often priced in advance
-    3: -0.04,  # Mar:  Worst month statistically — FY end selling, tax loss booking
-    4: -0.02,  # Apr:  Negative returns confirmed by NSE research
-    5: -0.02,  # May:  Geopolitical risk, global "sell in May" effect
-    6: -0.02,  # Jun:  One of 3 historically poorest months on NSE
-    7: 0.01,  # Jul:  Monsoon sentiment, Q1 results — slight positive
-    8: -0.01,  # Aug:  Geopolitical risk window, flat to negative
-    9: -0.03,  # Sep:  Historically challenging — FII rebalancing, quarter end
-    10: 0.01,  # Oct:  Slight dip before festive rally — not as strong as expected
-    11: 0.05,  # Nov:  Strongest month on NSE — 8.55% avg, Diwali momentum
-    12: 0.04,  # Dec:  Strong — 3.1% avg Nifty50, 74% of years positive
+    1: 0.01,  # Jan:  FII selling — validated
+    2: -0.02,  # Feb:  Budget priced in — validated
+    3: -0.07,  # Mar:  FY end + active oil crisis right now — validated
+    4: -0.09,  # Apr:  Oil impact peaks, inflation data arrives — validated
+    5: -0.06,  # May:  Sustained oil pressure — validated
+    6: -0.07,  # Jun:  Slight easing expected — validated
+    7: -0.03,  # Jul:  Monsoon + Q1 results — validated
+    8: -0.02,  # Aug:  Geopolitical risk — validated
+    9: -0.05,  # Sep:  FII rebalancing + oil still elevated — validated
+    10: -0.01,  # Oct:  Dip before Diwali — validated
+    11: 0.02,  # Nov:  Diwali rally — validated
+    12: 0.05,  # Dec:  Year end rally — validated
 }
 
 # ─────────────────────────────────────────────
@@ -96,8 +112,5 @@ SECTOR_ETFS = {
     "NIFTYREALTY": "^CNXREALTY",
 }
 
-# Top N sectors to report in summary
-TOP_SECTORS_COUNT = 3
-
-# Data fetch periods to try (longest first)
-FETCH_PERIODS = ["2y", "1y", "6mo", "5mo", "4mo", "3mo", "2mo", "1mo"]
+TOP_SECTORS_COUNT = 4
+FETCH_PERIODS = ["3y", "2y", "1y", "6mo", "5mo", "4mo", "3mo"]

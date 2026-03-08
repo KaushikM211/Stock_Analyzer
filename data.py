@@ -20,42 +20,55 @@ logging.getLogger("yfinance").setLevel(logging.CRITICAL)
 # FUNDAMENTAL FILTER THRESHOLDS
 # These are conservative thresholds for NSE large/mid caps
 # ─────────────────────────────────────────────
-MAX_PE_RATIO = 61.0  # Exclude extremely overvalued stocks
-MIN_PE_RATIO = 0.92  # Exclude negative earnings / shell companies
-MIN_PROMOTER_HOLDING = 32.5  # Promoter holding below 32.5% = low conviction
-MAX_PROMOTER_PLEDGE = 20.0  # High pledge = distress risk
+MAX_PE_RATIO = 63.0  # Exclude extremely overvalued stocks
+MIN_PE_RATIO = 1.0  # Exclude negative earnings / shell companies
+MIN_PROMOTER_HOLDING = 25.0  # Promoter holding below 25% = low conviction
+MAX_PROMOTER_PLEDGE = 40.0  # High pledge = distress risk
 MIN_REVENUE_GROWTH = -0.10  # Exclude companies with >10% revenue decline
 
 # Sector-specific D/E thresholds — a blanket limit is wrong
 # Each sector has a different natural capital structure
 # None = no cap applied (financial sector — leverage is their business model)
 SECTOR_DEBT_LIMITS = {
-    # Financial — leverage IS the business model
+    # Financial — leverage IS the business model, no cap
     "Financial Services": None,
     "Banking": None,
     "Insurance": None,
     "NBFC": None,
     "Housing Finance": None,
     "Microfinance": None,
-    # Infrastructure & Utilities — very long gestation, asset-heavy
-    "Utilities": 4.75,
-    "Infrastructure": 5.25,
-    "Energy": 4.75,
-    "Oil & Gas": 5.15,
+    # Infrastructure & Utilities — long gestation, asset-heavy, project debt normal
+    # NSE P75: Utilities~2.9, Infrastructure~4.5 — buffer above P75
+    "Utilities": 5.00,
+    "Infrastructure": 5.50,
+    "Energy": 4.50,  # ONGC/HPCL/BPCL — P75~2.8, buffer for refiners
+    "Oil & Gas": 5.00,
     # Real Estate — project financing temporarily inflates D/E
-    "Real Estate": 3.85,
-    # Industrials & Manufacturing — moderate debt is normal
-    "Industrials": 2.45,
-    "Basic Materials": 2.25,
-    "Materials": 2.25,
-    "Consumer Cyclical": 1.55,
-    "Consumer Defensive": 1.55,
-    # Asset-light but not zero-debt — some capex and R&D funded by debt
-    "Technology": 1.35,
-    "Healthcare": 1.95,
-    "Communication": 2.05,
+    # NSE P75: ~2.8 — DLF, Prestige, Sobha
+    "Real Estate": 4.00,
+    # Industrials — L&T, Ashok Leyland, BEML — P75~1.9 but outliers at 2.8
+    "Industrials": 3.25,
+    # Materials — cement (Ultratech~0.4) vs steel (JSW~1.9, Tata~1.8)
+    # P75~1.8 — buffer for steel/aluminium cycles
+    "Basic Materials": 2.50,
+    "Materials": 2.50,
+    # Consumer Cyclical — auto, retail, durables — P75~1.9
+    # Apollo Tyres(1.8), TVS Motor(1.9), Titan(1.7) — all legitimate
+    "Consumer Cyclical": 2.25,
+    # Consumer Defensive — FMCG largely debt-free, P75~0.8
+    # Slightly higher buffer for regional FMCG with distribution debt
+    "Consumer Defensive": 1.50,
+    # Technology — asset-light, TCS/Infy/Wipro near zero debt — P75~0.2
+    # Generous buffer for mid-cap IT with some capex debt
+    "Technology": 1.00,
+    # Healthcare — pharma capex, hospital chains — P75~0.8
+    # Fortis/NH hospitals go higher — buffer for hospital capex
+    "Healthcare": 2.00,
+    # Communication — Airtel(4.2), Indus Towers(2.1), spectrum debt
+    # P75~4.5 — telecom is infra-like
+    "Communication": 5.00,
 }
-DEFAULT_DEBT_LIMIT = 1.65  # fallback for unrecognised sectors
+DEFAULT_DEBT_LIMIT = 1.85  # fallback — conservative but not blocking
 
 # NSE headers required to bypass anti-scraping block
 _NSE_HEADERS = {

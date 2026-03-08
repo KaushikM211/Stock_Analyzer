@@ -6,6 +6,7 @@ dependencies = [
     "niftystocks",
     "yfinance>=0.2.0",
     "prophet>=1.1.0",
+    "cmdstanpy>=1.2.0",
     "xgboost>=2.0.0",
     "pandas>=2.1.0",
     "scikit-learn>=1.3.0",

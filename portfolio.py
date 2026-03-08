@@ -1,5 +1,5 @@
 # ─────────────────────────────────────────────
-# portfolio.py — Monthly ₹40,000 portfolio construction
+# portfolio.py — Monthly ₹50,000 portfolio construction
 # Builds 10 combinations from the full results pool
 # (not just top 5 per band) optimised for LTCG returns
 # ─────────────────────────────────────────────
@@ -124,7 +124,7 @@ def _compute_position(row: pd.Series, alloc_amount: float) -> dict | None:
 
 def _allocate(stocks: pd.DataFrame, budget: float) -> pd.DataFrame:
     """
-    Allocates budget across selected stocks targeting full ₹40,000 deployment.
+    Allocates budget across selected stocks targeting full ₹50,000 deployment.
 
     Phase 1 — Initial allocation:
         Weight by Score, cap at MAX_SINGLE_PCT, buy whole shares only.
@@ -357,7 +357,7 @@ def build_portfolios(results: dict, budget: float = MONTHLY_BUDGET) -> list[dict
     if len(small) >= 3:
         _add(
             "Small Cap Focus",
-            "Higher growth potential from ₹150–₹1500 range — higher risk, higher reward",
+            "Higher growth potential from ₹100–₹1500 range — higher risk, higher reward",
             small.sort_values("After_Tax_ROI_%", ascending=False),
         )
 

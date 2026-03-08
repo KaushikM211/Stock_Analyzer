@@ -20,7 +20,8 @@ def _band_table(results: dict) -> str:
             <thead>
                 <tr style="background:#0f3460; color:white; text-align:left;">
                     <th style="padding:7px;">#</th>
-                    <th style="padding:7px;">Stock</th>
+                    <th style="padding:7px;">Ticker</th>
+                    <th style="padding:7px;">Company</th>
                     <th style="padding:7px;">Buy At</th>
                     <th style="padding:7px;">Target</th>
                     <th style="padding:7px;">Gross ROI</th>
@@ -41,6 +42,7 @@ def _band_table(results: dict) -> str:
             <tr style="background:{bg};">
                 <td style="padding:7px;">{i + 1}</td>
                 <td style="padding:7px; font-weight:bold;">{row["Stock"]}</td>
+                <td style="padding:7px; color:#555;">{row.get("Company_Name", "")}</td>
                 <td style="padding:7px;">₹{row["Buy_Price"]}</td>
                 <td style="padding:7px;">₹{row["Exit_Target"]}</td>
                 <td style="padding:7px; color:#555;">+{row["Gross_ROI_%"]}%</td>
@@ -100,7 +102,8 @@ def _portfolio_tables(portfolios: list) -> str:
             <table style="width:100%; border-collapse:collapse; font-size:12px;">
                 <thead>
                     <tr style="background:#eef2f7; text-align:left;">
-                        <th style="padding:7px;">Stock</th>
+                        <th style="padding:7px;">Ticker</th>
+                        <th style="padding:7px;">Company</th>
                         <th style="padding:7px;">Band</th>
                         <th style="padding:7px;">Buy At</th>
                         <th style="padding:7px;">Shares</th>
@@ -120,6 +123,7 @@ def _portfolio_tables(portfolios: list) -> str:
             html += f"""
                 <tr style="background:{bg};">
                     <td style="padding:7px; font-weight:bold;">{row["Stock"]}</td>
+                    <td style="padding:7px; color:#555;">{row.get("Company_Name", "")}</td>
                     <td style="padding:7px; font-size:11px; color:#555;">{row["Band"]}</td>
                     <td style="padding:7px;">₹{row["Buy_Price"]}</td>
                     <td style="padding:7px; font-weight:bold;">{int(row["Shares"])}</td>
@@ -179,14 +183,14 @@ def _build_portfolio_html(portfolios: list) -> str:
     <html><body style="font-family:Arial,sans-serif; max-width:1000px;
                         margin:auto; color:#1a1a1a;">
     <h2 style="color:#1a1a2e; margin-bottom:4px;">
-        💼 Nifty 500 — ₹40,000 Portfolio Combinations
+        💼 Nifty 500 — ₹50,000 Portfolio Combinations
     </h2>
     <p style="color:#555; margin-top:0;">
         📅 {today} &nbsp;|&nbsp;
         📧 This is email 2 of 2. Band-wise picks are in the previous email.
     </p>
     <p style="color:#777; font-size:13px; margin-top:0;">
-        10 ways to deploy ₹40,000 this month. Exact share quantities —
+        10 ways to deploy ₹50,000 this month. Exact share quantities —
         place directly as market orders. Pick the strategy that fits your timeline.
     </p>
     <hr style="border:1px solid #ddd;"/>

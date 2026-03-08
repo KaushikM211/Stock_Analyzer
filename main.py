@@ -3,7 +3,6 @@
 # ─────────────────────────────────────────────
 
 from dotenv import load_dotenv
-
 import sys
 import pandas as pd
 from datetime import date
@@ -71,19 +70,21 @@ def run_analysis():
             f"Net Profit: ₹{s['Total_Net_Profit']:,}  |  "
             f"Portfolio ROI: {s['Portfolio_ROI_%']}%"
         )
-        print(
-            combo["portfolio"][
-                [
-                    "Stock",
-                    "Shares",
-                    "Invested",
-                    "Exit_Value",
-                    "Net_Profit",
-                    "Net_ROI_%",
-                    "Best_Sell_Date",
-                ]
-            ].to_string(index=False)
-        )
+        cols = [
+            c
+            for c in [
+                "Stock",
+                "Company_Name",
+                "Shares",
+                "Invested",
+                "Exit_Value",
+                "Net_Profit",
+                "Net_ROI_%",
+                "Best_Sell_Date",
+            ]
+            if c in combo["portfolio"].columns
+        ]
+        print(combo["portfolio"][cols].to_string(index=False))
 
     send_email_alert(results, portfolios=portfolios)
 
@@ -100,6 +101,7 @@ def main():
                     {
                         "Price_Band": "₹150–₹500",
                         "Stock": "TEST.NS",
+                        "Company_Name": "Test Company Ltd",
                         "Buy_Price": 100.0,
                         "Exit_Target": 130.0,
                         "Gross_ROI_%": 30.0,

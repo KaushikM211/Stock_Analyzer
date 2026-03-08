@@ -82,13 +82,14 @@ def xgboost_forecast(
     X_scaled = scaler.fit_transform(X)
 
     model = XGBRegressor(
-        n_estimators=200,
+        n_estimators=150,  # 200 → 150: marginal accuracy loss, 2x speed
         max_depth=3,
-        learning_rate=0.05,
+        learning_rate=0.0675,  # slightly higher lr compensates for fewer trees
         subsample=0.8,
         colsample_bytree=0.8,
         random_state=42,
         verbosity=0,
+        n_jobs=1,  # avoid thread contention in parallel runs
     )
     model.fit(X_scaled, y)
 

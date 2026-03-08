@@ -97,14 +97,16 @@ def prophet_forecast(
 
     model = Prophet(
         daily_seasonality=False,
-        weekly_seasonality=True,
+        weekly_seasonality=False,  # weekly adds ~0.3s per fit, marginal value
         yearly_seasonality=len(close) >= 200,
         changepoint_prior_scale=0.03,
         seasonality_prior_scale=0.2,
         interval_width=0.80,
+        stan_backend="CMDSTANPY",  # faster than default
+        n_changepoints=25,  # default 25
     )
     model.add_regressor("macro")
-    model.fit(df_p)
+    model.fit(df_p, iter=6000)  # default 6000 iter
 
     future_dates = pd.bdate_range(start=close.index[-1], periods=horizon + 1)[1:]
     future_df = pd.DataFrame({"ds": future_dates})

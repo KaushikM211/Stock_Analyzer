@@ -5,7 +5,7 @@
 import pandas as pd
 
 from config import FORECAST_HORIZON, MODEL_WEIGHTS
-from models import xgboost_forecast, prophet_forecast, holt_forecast
+from models import xgboost_forecast, prophet_forecast, holt_forecast, vpr_forecast
 
 
 def ensemble_forecast(
@@ -56,6 +56,15 @@ def ensemble_forecast(
         weights["holt"] = MODEL_WEIGHTS["holt"]
     except Exception as e:
         print(f"    [Holt] failed: {e}")
+
+    # ── VPR — Volatility Penalised Return ──
+    try:
+        v_series = vpr_forecast(close, horizon)
+        if v_series is not None:
+            forecasts["vpr"] = v_series
+            weights["vpr"] = MODEL_WEIGHTS["vpr"]
+    except Exception as e:
+        print(f"    [VPR] failed: {e}")
 
     if not forecasts:
         return None, None, None

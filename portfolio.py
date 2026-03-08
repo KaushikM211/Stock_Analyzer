@@ -7,17 +7,21 @@
 import math
 import pandas as pd
 from datetime import datetime  # noqa: F401
+from config import MAX_SECTOR_PER_PORTFOLIO
 
 # ─────────────────────────────────────────────
 # PARAMETERS
 # ─────────────────────────────────────────────
-MONTHLY_BUDGET = 40_000
-MAX_STOCKS = 6  # max stocks per combination
+MONTHLY_BUDGET = 50_000
+MAX_STOCKS = 7  # max stocks per combination
 MIN_ALLOCATION = 2_000  # ₹2,000 minimum per position
-MAX_SINGLE_PCT = 0.30  # max 30% in any single stock
-BROKERAGE_PER_TRADE = 20  # ₹20 per trade (Zerodha flat fee)
+MAX_SINGLE_PCT = 0.35  # max 30% in any single stock
 
-SMALL_CAP_BANDS = ["₹150–₹500", "₹500–₹1000", "₹1000–₹1500"]
+# ICICI Direct delivery brokerage — 0.55% on transaction value (both legs)
+# Delivery trades held 12+ months — charged on buy and sell
+ICICI_BROKERAGE_PCT = 0.0055  # 0.55% per transaction
+
+SMALL_CAP_BANDS = ["₹100–₹500", "₹500–₹1000", "₹1000–₹1500"]
 LARGE_CAP_BANDS = [
     "₹3000–₹3500",
     "₹3500–₹4000",
@@ -83,19 +87,26 @@ def _compute_position(row: pd.Series, alloc_amount: float) -> dict | None:
     from config import LTCG_TAX_RATE, LTCG_EXEMPTION, CESS_RATE, STT_RATE
 
     price = row["Buy_Price"]
-    shares = math.floor((alloc_amount - BROKERAGE_PER_TRADE) / price)
+
+    # ICICI Direct charges 0.55% on buy value (delivery trades)
+    buy_brokerage = alloc_amount * ICICI_BROKERAGE_PCT
+    shares = math.floor((alloc_amount - buy_brokerage) / price)
     if shares < 1:
         return None
-    actual_invest = shares * price + BROKERAGE_PER_TRADE
+
+    buy_value = shares * price
+    actual_invest = buy_value + buy_brokerage  # actual cash out of account
     exit_value = shares * row["Exit_Target"]
+    sell_brokerage = exit_value * ICICI_BROKERAGE_PCT  # 0.55% on sell value
     gross_profit = shares * (row["Exit_Target"] - price)
-    stt = (shares * price + shares * row["Exit_Target"]) * STT_RATE
+    stt = (buy_value + exit_value) * STT_RATE
     taxable = max(0, gross_profit - LTCG_EXEMPTION)
     tax = taxable * LTCG_TAX_RATE * (1 + CESS_RATE)
-    net_profit = gross_profit - tax - stt - BROKERAGE_PER_TRADE
+    net_profit = gross_profit - tax - stt - buy_brokerage - sell_brokerage
     net_roi = net_profit / actual_invest * 100
     return {
         "Stock": row["Stock"],
+        "Company_Name": row.get("Company_Name", row["Stock"].replace(".NS", "")),
         "Band": row["Band"],
         "Buy_Price": round(price, 2),
         "Shares": shares,
@@ -136,9 +147,15 @@ def _allocate(stocks: pd.DataFrame, budget: float) -> pd.DataFrame:
     weights = weights / weights.sum()
 
     positions = {}  # stock -> position dict
+    sector_count = {}  # sector -> count of stocks already allocated
     spent = 0.0
 
     for i, row in stocks.iterrows():
+        # Sector cap — skip if this sector already has MAX_SECTOR_PER_PORTFOLIO stocks
+        sector = row.get("Sector", "Unknown")
+        if sector_count.get(sector, 0) >= MAX_SECTOR_PER_PORTFOLIO:
+            continue
+
         alloc = budget * weights[i]
         if alloc < MIN_ALLOCATION:
             continue
@@ -146,6 +163,7 @@ def _allocate(stocks: pd.DataFrame, budget: float) -> pd.DataFrame:
         if pos is None:
             continue
         positions[row["Stock"]] = {"row": row, "pos": pos}
+        sector_count[sector] = sector_count.get(sector, 0) + 1
         spent += pos["Invested"]
 
     if not positions:
@@ -166,36 +184,37 @@ def _allocate(stocks: pd.DataFrame, budget: float) -> pd.DataFrame:
             ticker = row["Stock"]
             price = row["Buy_Price"]
             # Can we afford at least 1 more share?
-            if remaining < price + BROKERAGE_PER_TRADE:
+            if remaining < price * (1 + ICICI_BROKERAGE_PCT):
                 continue
             extra_shares = math.floor(remaining / price)
             if extra_shares < 1:
                 continue
             extra_cost = extra_shares * price
             if extra_cost > remaining:
-                extra_shares = math.floor((remaining) / price)
+                extra_shares = math.floor(remaining / price)
                 extra_cost = extra_shares * price
             if extra_shares < 1:
                 continue
-            # Add shares to existing position
-            old_pos = positions[ticker]["pos"]
-            new_shares = old_pos["Shares"] + extra_shares
-            new_alloc = new_shares * price + BROKERAGE_PER_TRADE
-            new_pos = _compute_position(row, new_alloc + BROKERAGE_PER_TRADE)  # noqa: F841
-            # Recompute directly with new share count
+            # Add shares to existing position and recompute
             from config import LTCG_TAX_RATE, LTCG_EXEMPTION, CESS_RATE, STT_RATE
 
+            old_pos = positions[ticker]["pos"]
+            new_shares = old_pos["Shares"] + extra_shares
+            buy_value = new_shares * price
+            buy_brokerage = buy_value * ICICI_BROKERAGE_PCT
+            actual_invest = buy_value + buy_brokerage
             exit_value = new_shares * row["Exit_Target"]
+            sell_brokerage = exit_value * ICICI_BROKERAGE_PCT
             gross_profit = new_shares * (row["Exit_Target"] - price)
-            stt = (new_shares * price + exit_value) * STT_RATE
+            stt = (buy_value + exit_value) * STT_RATE
             taxable = max(0, gross_profit - LTCG_EXEMPTION)
             tax = taxable * LTCG_TAX_RATE * (1 + CESS_RATE)
-            net_profit = gross_profit - tax - stt - BROKERAGE_PER_TRADE
-            net_roi = net_profit / (new_shares * price + BROKERAGE_PER_TRADE) * 100
+            net_profit = gross_profit - tax - stt - buy_brokerage - sell_brokerage
+            net_roi = net_profit / actual_invest * 100
             positions[ticker]["pos"] = {
                 **old_pos,
                 "Shares": new_shares,
-                "Invested": round(new_shares * price + BROKERAGE_PER_TRADE, 2),
+                "Invested": round(actual_invest, 2),
                 "Exit_Value": round(exit_value, 2),
                 "Gross_Profit": round(gross_profit, 2),
                 "Net_Profit": round(net_profit, 2),
@@ -300,12 +319,12 @@ def build_portfolios(results: dict, budget: float = MONTHLY_BUDGET) -> list[dict
         pool.sort_values("Avg_Daily_Turnover_Cr", ascending=False),
     )
 
-    # ── 5. Conservative — steady 14–19% after-tax ROI ──
+    # ── 5. Conservative — steady 15–30% after-tax ROI ──
     conservative = pool[
-        (pool["After_Tax_ROI_%"] >= 14) & (pool["After_Tax_ROI_%"] <= 19)
+        (pool["After_Tax_ROI_%"] >= 15) & (pool["After_Tax_ROI_%"] <= 35)
     ]
     _add(
-        "Conservative (14–19% ROI)",
+        "Conservative (15–35% ROI)",
         "Moderate return targets — more realistic, less downside if model is off",
         conservative.sort_values("Score", ascending=False),
     )

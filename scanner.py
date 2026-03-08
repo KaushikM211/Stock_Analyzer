@@ -19,6 +19,7 @@ from config import (
     FORECAST_HORIZON,
     PRICE_BANDS,
     TOP_N_PER_BAND,
+    MAX_SECTOR_PER_BAND,
     STCG_TAX_RATE,
     LTCG_TAX_RATE,
     LTCG_EXEMPTION,
@@ -32,12 +33,13 @@ from data import (
     fetch_sector_momentum,
     get_top_sectors,
     passes_fundamental_filter,
+    fetch_fundamentals,
 )
 from ensemble import ensemble_forecast
 
 warnings.filterwarnings("ignore")
 
-CONFIDENCE_THRESHOLD = 0.40
+CONFIDENCE_THRESHOLD = 0.375
 
 
 def _liquidity_label(avg_daily_turnover: float) -> str:
@@ -158,22 +160,33 @@ def analyze_and_predict(
     top_sectors = get_top_sectors(sector_momentum)
     print(f"Top sectors by momentum: {top_sectors}\n")
 
-    for ticker in tqdm(tickers, desc="Scanning Nifty 500"):
+    def _process_ticker(ticker: str) -> dict | None:
+        """Process a single ticker — runs in thread pool."""
         try:
             close, volume = fetch_best_available(ticker)
-
             if close is None or len(close) < 60:
-                continue
+                return None
 
             curr_price = float(close.iloc[-1])
             if not (lower_limit <= curr_price <= upper_limit):
-                continue
+                return None
 
-            # ── Layer 1: Fundamental filter ──
+            # ── Fundamental filter ──
             passed, reason = passes_fundamental_filter(ticker)
             if not passed:
                 print(f"  {ticker} filtered: {reason}")
-                continue
+                return None
+
+            # Company name and sector — cached, no extra network call
+            fundamentals = fetch_fundamentals(ticker)
+            company_name = (
+                fundamentals.get("company_name", ticker.replace(".NS", ""))
+                if fundamentals
+                else ticker.replace(".NS", "")
+            )
+            sector = (
+                fundamentals.get("sector", "Unknown") if fundamentals else "Unknown"
+            )
 
             # ── Liquidity check ──
             lookback = min(20, len(close))
@@ -181,7 +194,7 @@ def analyze_and_predict(
                 (close.tail(lookback) * volume.tail(lookback)).mean()
             )
             if avg_daily_turnover < MIN_AVG_DAILY_TURNOVER:
-                continue
+                return None
 
             liquidity = _liquidity_label(avg_daily_turnover)
 
@@ -189,29 +202,31 @@ def analyze_and_predict(
             ma_short = close.iloc[-min(20, len(close)) :].mean()
             ma_long = close.mean()
             if ma_short < ma_long * MOMENTUM_TOLERANCE:
-                continue
+                return None
 
             # ── Ensemble forecast ──
             forecast_series, prophet_series, prophet_conf_width = ensemble_forecast(
                 close, volume, horizon=FORECAST_HORIZON
             )
             if forecast_series is None:
-                continue
+                return None
 
-            # ── ROI from ensemble in LTCG window (month 12–15) ──
             ensemble_window = forecast_series.iloc[
                 TARGET_WINDOW_START:TARGET_WINDOW_END
             ]
             if ensemble_window.empty:
-                continue
+                return None
 
             exit_target = float(ensemble_window.max())
-
-            # ── Dates from Prophet ──
             prophet_window = prophet_series.iloc[TARGET_WINDOW_START:TARGET_WINDOW_END]
-            min_hold_until = prophet_window.index[0]
 
-            # Stock-specific confidence expiry — when Prophet loses confidence
+            min_hold_until = pd.Timestamp(
+                pd.bdate_range(
+                    start=date.today().isoformat(),
+                    periods=LTCG_HOLD_DAYS + 1,
+                )[-1]
+            )
+
             forecast_expires = _get_confidence_expiry(
                 prophet_series,
                 prophet_conf_width
@@ -220,32 +235,26 @@ def analyze_and_predict(
                 TARGET_WINDOW_START,
             )
 
-            # Best sell date must NEVER exceed forecast expiry
-            # If model loses confidence in Sep 2027, a Feb 2028 peak is unreliable
-            # Find peak only within the window Prophet is still confident about
             forecast_expires_dt = pd.Timestamp(
                 pd.to_datetime(forecast_expires, format="%d %b %Y")
             )
             confident_window = prophet_window[
                 prophet_window.index <= forecast_expires_dt
             ]
-            if not confident_window.empty:
-                best_sell_date = confident_window.idxmax()
-            else:
-                best_sell_date = prophet_window.idxmax()
+            best_sell_date = (
+                confident_window.idxmax()
+                if not confident_window.empty
+                else prophet_window.idxmax()
+            )
 
-            # ── Minimum confident window check ──
-            # If Prophet loses confidence within 30 days of Min Hold Until,
-            # the forecast window is too narrow to be actionable — skip stock
             min_hold_dt = prophet_window.index[0]
             confident_days = (forecast_expires_dt - min_hold_dt).days
             if confident_days < 30:
                 print(
-                    f"  {ticker} skipped: confident window only {confident_days} days past LTCG threshold"
+                    f"  {ticker} skipped: confident window only {confident_days} days"
                 )
-                continue
+                return None
 
-            # ── After-tax ROI calculation ──
             gross_roi, after_tax_roi, tax_label = _calculate_after_tax_roi(
                 buy_price=curr_price,
                 sell_price=exit_target,
@@ -253,7 +262,6 @@ def analyze_and_predict(
             )
 
             band_label = _get_band_label(curr_price)
-
             print(
                 f"{ticker} | ₹{curr_price:.2f} [{band_label}] "
                 f"| Gross: {gross_roi:.1f}% | Net: {after_tax_roi:.1f}% ({tax_label}) "
@@ -261,32 +269,37 @@ def analyze_and_predict(
                 f"| ₹{avg_daily_turnover / 1e7:.1f}Cr/day"
             )
 
-            # Filter on after-tax ROI — what you actually keep matters
-            if after_tax_roi >= MIN_WEIGHTED_ROI:
-                recommendations.append(
-                    {
-                        "Price_Band": band_label,
-                        "Stock": ticker,
-                        "Buy_Price": round(curr_price, 2),
-                        "Exit_Target": round(exit_target, 2),
-                        "Gross_ROI_%": gross_roi,
-                        "After_Tax_ROI_%": after_tax_roi,
-                        "Tax_Type": tax_label,
-                        "Min_Hold_Until": min_hold_until.strftime("%d %b %Y"),
-                        "Best_Sell_Date": best_sell_date.strftime("%d %b %Y"),
-                        "Forecast_Expires": forecast_expires,
-                        "Avg_Daily_Turnover_Cr": round(avg_daily_turnover / 1e7, 2),
-                        "Liquidity": liquidity,
-                        "Data_Days": len(close),
-                    }
-                )
+            if after_tax_roi < MIN_WEIGHTED_ROI:
+                return None
 
-            del forecast_series, prophet_series, ensemble_window, prophet_window
-            gc.collect()
+            return {
+                "Price_Band": band_label,
+                "Stock": ticker,
+                "Company_Name": company_name,
+                "Buy_Price": round(curr_price, 2),
+                "Exit_Target": round(exit_target, 2),
+                "Gross_ROI_%": gross_roi,
+                "After_Tax_ROI_%": after_tax_roi,
+                "Tax_Type": tax_label,
+                "Min_Hold_Until": min_hold_until.strftime("%d %b %Y"),
+                "Best_Sell_Date": best_sell_date.strftime("%d %b %Y"),
+                "Forecast_Expires": forecast_expires,
+                "Avg_Daily_Turnover_Cr": round(avg_daily_turnover / 1e7, 2),
+                "Sector": sector,
+                "Liquidity": liquidity,
+                "Data_Days": len(close),
+            }
 
         except Exception as e:
             print(f"{ticker}: {type(e).__name__}: {e}")
-            continue
+            return None
+
+    # ── Sequential scan — parallel caused yfinance data collisions ──
+    for ticker in tqdm(tickers, desc="Scanning Nifty 500"):
+        result = _process_ticker(ticker)
+        if result is not None:
+            recommendations.append(result)
+    gc.collect()
 
     if not recommendations:
         return {}
@@ -294,6 +307,7 @@ def analyze_and_predict(
     df_all = pd.DataFrame(recommendations)
 
     # Sort by after-tax ROI — rank on what you actually keep
+    # Apply sector cap — max MAX_SECTOR_PER_BAND stocks from same sector per band
     results = {}
     for low, high in PRICE_BANDS:
         label = f"₹{low}–₹{high}"
@@ -301,10 +315,24 @@ def analyze_and_predict(
             df_all[df_all["Price_Band"] == label]
             .sort_values(by="After_Tax_ROI_%", ascending=False)
             .reset_index(drop=True)
-            .head(TOP_N_PER_BAND)
         )
-        if not band_df.empty:
-            results[label] = band_df
+        if band_df.empty:
+            continue
+
+        # Sector-aware selection — pick top N respecting sector cap
+        selected = []
+        sector_count = {}
+        for _, row in band_df.iterrows():
+            sector = row.get("Sector", "Unknown")
+            count = sector_count.get(sector, 0)
+            if count < MAX_SECTOR_PER_BAND:
+                selected.append(row)
+                sector_count[sector] = count + 1
+            if len(selected) >= TOP_N_PER_BAND:
+                break
+
+        if selected:
+            results[label] = pd.DataFrame(selected).reset_index(drop=True)
 
     return results
 

@@ -6,6 +6,14 @@
 LOWER_LIMIT = 100
 UPPER_LIMIT = 15000
 
+# Max stocks from same sector per price band (Email 1)
+# Prevents one sector dominating a single band
+MAX_SECTOR_PER_BAND = 2
+
+# Max stocks from same sector per portfolio combination (Email 2)
+# Enforces diversification across all 10 combinations
+MAX_SECTOR_PER_PORTFOLIO = 2
+
 # Price band buckets — ₹500 windows within lower/upper limits
 # Each bucket gets its own top-N picks in the final output
 PRICE_BANDS = [
@@ -66,13 +74,13 @@ MIN_WEIGHTED_ROI = 10.0  # Minimum after-tax ROI to qualify
 # Minimum average daily turnover
 MIN_AVG_DAILY_TURNOVER = 1e7  # ₹1 Crore/day
 
-# Ensemble model weights
+# Ensemble model weights — must sum to 1.0
 MODEL_WEIGHTS = {
-    "prophet": 0.40,
-    "xgb": 0.35,
-    "holt": 0.25,
+    "prophet": 0.345,
+    "xgb": 0.225,
+    "holt": 0.275,
+    "vpr": 0.155,
 }
-
 # Per-model annualised return caps
 MAX_ANNUAL_RETURN = 0.25
 MIN_ANNUAL_RETURN = -0.15
@@ -84,18 +92,18 @@ MOMENTUM_TOLERANCE = 0.97
 # MACRO SEASONALITY CALENDAR (India-specific)
 # ─────────────────────────────────────────────
 MACRO_MONTH_WEIGHTS = {
-    1: 0.01,  # Jan:  FII selling — validated
-    2: -0.02,  # Feb:  Budget priced in — validated
-    3: -0.07,  # Mar:  FY end + active oil crisis right now — validated
-    4: -0.09,  # Apr:  Oil impact peaks, inflation data arrives — validated
-    5: -0.06,  # May:  Sustained oil pressure — validated
-    6: -0.07,  # Jun:  Slight easing expected — validated
-    7: -0.03,  # Jul:  Monsoon + Q1 results — validated
-    8: -0.02,  # Aug:  Geopolitical risk — validated
-    9: -0.05,  # Sep:  FII rebalancing + oil still elevated — validated
-    10: -0.01,  # Oct:  Dip before Diwali — validated
-    11: 0.02,  # Nov:  Diwali rally — validated
-    12: 0.05,  # Dec:  Year end rally — validated
+    1: 0.01,  # Jan:  FII selling
+    2: -0.02,  # Feb:  Budget priced in
+    3: -0.07,  # Mar:  FY end + active oil crisis right now
+    4: -0.09,  # Apr:  Oil impact peaks, inflation data arrives
+    5: -0.06,  # May:  Sustained oil pressure
+    6: -0.07,  # Jun:  Slight easing expected
+    7: -0.03,  # Jul:  Monsoon + Q1 results
+    8: -0.02,  # Aug:  Geopolitical risk
+    9: -0.05,  # Sep:  FII rebalancing + oil still elevated
+    10: -0.01,  # Oct:  Dip before Diwali
+    11: 0.02,  # Nov:  Diwali rally
+    12: 0.05,  # Dec:  Year end rally
 }
 
 # ─────────────────────────────────────────────

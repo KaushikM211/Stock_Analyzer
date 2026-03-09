@@ -20,7 +20,7 @@ logging.getLogger("yfinance").setLevel(logging.CRITICAL)
 # FUNDAMENTAL FILTER THRESHOLDS
 # These are conservative thresholds for NSE large/mid caps
 # ─────────────────────────────────────────────
-MAX_PE_RATIO = 63.0  # Exclude extremely overvalued stocks
+MAX_PE_RATIO = 80.0  # Exclude extremely overvalued stocks
 MIN_PE_RATIO = 1.0  # Exclude negative earnings / shell companies
 MIN_PROMOTER_HOLDING = 25.0  # Promoter holding below 25% = low conviction
 MAX_PROMOTER_PLEDGE = 40.0  # High pledge = distress risk
@@ -39,36 +39,36 @@ SECTOR_DEBT_LIMITS = {
     "Microfinance": None,
     # Infrastructure & Utilities — long gestation, asset-heavy, project debt normal
     # NSE P75: Utilities~2.9, Infrastructure~4.5 — buffer above P75
-    "Utilities": 5.00,
-    "Infrastructure": 5.50,
-    "Energy": 4.50,  # ONGC/HPCL/BPCL — P75~2.8, buffer for refiners
-    "Oil & Gas": 5.00,
+    "Utilities": 5.50,
+    "Infrastructure": 5.75,
+    "Energy": 4.75,  # ONGC/HPCL/BPCL — P75~2.8, buffer for refiners
+    "Oil & Gas": 5.25,
     # Real Estate — project financing temporarily inflates D/E
     # NSE P75: ~2.8 — DLF, Prestige, Sobha
-    "Real Estate": 4.00,
+    "Real Estate": 4.25,
     # Industrials — L&T, Ashok Leyland, BEML — P75~1.9 but outliers at 2.8
-    "Industrials": 3.25,
+    "Industrials": 3.50,
     # Materials — cement (Ultratech~0.4) vs steel (JSW~1.9, Tata~1.8)
     # P75~1.8 — buffer for steel/aluminium cycles
-    "Basic Materials": 2.50,
-    "Materials": 2.50,
+    "Basic Materials": 3.25,
+    "Materials": 2.75,
     # Consumer Cyclical — auto, retail, durables — P75~1.9
     # Apollo Tyres(1.8), TVS Motor(1.9), Titan(1.7) — all legitimate
-    "Consumer Cyclical": 2.25,
+    "Consumer Cyclical": 2.55,
     # Consumer Defensive — FMCG largely debt-free, P75~0.8
     # Slightly higher buffer for regional FMCG with distribution debt
-    "Consumer Defensive": 1.50,
+    "Consumer Defensive": 2.25,
     # Technology — asset-light, TCS/Infy/Wipro near zero debt — P75~0.2
     # Generous buffer for mid-cap IT with some capex debt
-    "Technology": 1.00,
+    "Technology": 2.00,
     # Healthcare — pharma capex, hospital chains — P75~0.8
     # Fortis/NH hospitals go higher — buffer for hospital capex
-    "Healthcare": 2.00,
+    "Healthcare": 2.75,
     # Communication — Airtel(4.2), Indus Towers(2.1), spectrum debt
     # P75~4.5 — telecom is infra-like
-    "Communication": 5.00,
+    "Communication": 5.25,
 }
-DEFAULT_DEBT_LIMIT = 1.85  # fallback — conservative but not blocking
+DEFAULT_DEBT_LIMIT = 2.65  # fallback — conservative but not blocking
 
 # NSE headers required to bypass anti-scraping block
 _NSE_HEADERS = {

@@ -39,7 +39,7 @@ from ensemble import ensemble_forecast
 
 warnings.filterwarnings("ignore")
 
-CONFIDENCE_THRESHOLD = 0.375
+CONFIDENCE_THRESHOLD = 0.425
 
 
 def _liquidity_label(avg_daily_turnover: float) -> str:

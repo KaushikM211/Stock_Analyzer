@@ -12,7 +12,7 @@ from config import MAX_ANNUAL_RETURN, MIN_ANNUAL_RETURN
 # 0.80 = moderate damping (good for 8–12 month horizon)
 # 1.00 = no damping (same as regular Holt's — too aggressive)
 # 0.70 = strong damping (too conservative)
-DAMPING_FACTOR = 0.82
+DAMPING_FACTOR = 0.89
 
 
 def holt_forecast(

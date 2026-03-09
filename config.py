@@ -69,7 +69,7 @@ STT_RATE = 0.001  # 0.1% Securities Transaction Tax (buy + sell)
 LTCG_HOLD_DAYS = 252  # Trading days to cross 12-month LTCG threshold
 
 # ROI thresholds — now applied to AFTER-TAX ROI
-MIN_WEIGHTED_ROI = 8.5  # Minimum after-tax ROI to qualify
+MIN_WEIGHTED_ROI = 6.5  # Minimum after-tax ROI to qualify
 
 # Minimum average daily turnover
 MIN_AVG_DAILY_TURNOVER = 1e7  # ₹1 Crore/day
@@ -86,7 +86,7 @@ MAX_ANNUAL_RETURN = 0.25
 MIN_ANNUAL_RETURN = -0.15
 
 # Momentum pre-filter tolerance
-MOMENTUM_TOLERANCE = 0.97
+MOMENTUM_TOLERANCE = 0.93
 
 # ─────────────────────────────────────────────
 # MACRO SEASONALITY CALENDAR (India-specific)

@@ -1,5 +1,5 @@
 # ─────────────────────────────────────────────
-# portfolio.py — Monthly ₹50,000 portfolio construction
+# portfolio.py — Monthly ₹40,000 portfolio construction
 # Builds 10 combinations from the full results pool
 # (not just top 5 per band) optimised for LTCG returns
 # ─────────────────────────────────────────────
@@ -15,13 +15,13 @@ from config import MAX_SECTOR_PER_PORTFOLIO
 MONTHLY_BUDGET = 50_000
 MAX_STOCKS = 7  # max stocks per combination
 MIN_ALLOCATION = 2_000  # ₹2,000 minimum per position
-MAX_SINGLE_PCT = 0.35  # max 35% in any single stock
+MAX_SINGLE_PCT = 0.30  # max 30% in any single stock
 
 # ICICI Direct delivery brokerage — 0.55% on transaction value (both legs)
 # Delivery trades held 12+ months — charged on buy and sell
 ICICI_BROKERAGE_PCT = 0.0055  # 0.55% per transaction
 
-SMALL_CAP_BANDS = ["₹100–₹500", "₹500–₹1000", "₹1000–₹1500"]
+SMALL_CAP_BANDS = ["₹150–₹500", "₹500–₹1000", "₹1000–₹1500"]
 LARGE_CAP_BANDS = [
     "₹3000–₹3500",
     "₹3500–₹4000",
@@ -124,7 +124,7 @@ def _compute_position(row: pd.Series, alloc_amount: float) -> dict | None:
 
 def _allocate(stocks: pd.DataFrame, budget: float) -> pd.DataFrame:
     """
-    Allocates budget across selected stocks targeting full ₹50,000 deployment.
+    Allocates budget across selected stocks targeting full ₹40,000 deployment.
 
     Phase 1 — Initial allocation:
         Weight by Score, cap at MAX_SINGLE_PCT, buy whole shares only.
@@ -186,7 +186,15 @@ def _allocate(stocks: pd.DataFrame, budget: float) -> pd.DataFrame:
             # Can we afford at least 1 more share?
             if remaining < price * (1 + ICICI_BROKERAGE_PCT):
                 continue
-            extra_shares = math.floor(remaining / price)
+            # Enforce MAX_SINGLE_PCT cap — check current allocation
+            current_invested = positions[ticker]["pos"]["Invested"]
+            max_allowed = budget * MAX_SINGLE_PCT
+            if current_invested >= max_allowed:
+                continue
+            # How many extra shares can we buy within cap and remaining budget?
+            headroom = max_allowed - current_invested
+            affordable = min(remaining, headroom)
+            extra_shares = math.floor(affordable / price)
             if extra_shares < 1:
                 continue
             extra_cost = extra_shares * price
@@ -357,7 +365,7 @@ def build_portfolios(results: dict, budget: float = MONTHLY_BUDGET) -> list[dict
     if len(small) >= 3:
         _add(
             "Small Cap Focus",
-            "Higher growth potential from ₹100–₹1500 range — higher risk, higher reward",
+            "Higher growth potential from ₹150–₹1500 range — higher risk, higher reward",
             small.sort_values("After_Tax_ROI_%", ascending=False),
         )
 

@@ -82,11 +82,11 @@ MODEL_WEIGHTS = {
     "vpr": 0.155,
 }
 # Per-model annualised return caps
-MAX_ANNUAL_RETURN = 0.25
-MIN_ANNUAL_RETURN = -0.15
+MAX_ANNUAL_RETURN = 0.35
+MIN_ANNUAL_RETURN = -0.175
 
 # Momentum pre-filter tolerance
-MOMENTUM_TOLERANCE = 0.93
+MOMENTUM_TOLERANCE = 0.97
 
 # ─────────────────────────────────────────────
 # MACRO SEASONALITY CALENDAR (India-specific)

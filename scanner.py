@@ -41,6 +41,12 @@ warnings.filterwarnings("ignore")
 
 CONFIDENCE_THRESHOLD = 0.425
 
+# Execution slippage buffer — yfinance uses yesterday's close as Buy_Price
+# Workflow runs at 9:30 AM IST, actual buy happens during market hours
+# Stock may open 1–3% higher/lower — 2% buffer makes ROI shown conservative
+# i.e. ROI displayed already assumes you paid 2% more than yesterday's close
+SLIPPAGE_BUFFER = 0.02
+
 
 def _liquidity_label(avg_daily_turnover: float) -> str:
     if avg_daily_turnover >= 5e7:
@@ -171,6 +177,9 @@ def analyze_and_predict(
             if not (lower_limit <= curr_price <= upper_limit):
                 return None
 
+            # Apply slippage buffer — actual execution price is ~2% above yesterday's close
+            execution_price = curr_price * (1 + SLIPPAGE_BUFFER)
+
             # ── Fundamental filter ──
             passed, reason = passes_fundamental_filter(ticker)
             if not passed:
@@ -256,7 +265,7 @@ def analyze_and_predict(
                 return None
 
             gross_roi, after_tax_roi, tax_label = _calculate_after_tax_roi(
-                buy_price=curr_price,
+                buy_price=execution_price,
                 sell_price=exit_target,
                 best_sell_date=best_sell_date,
             )
@@ -276,10 +285,12 @@ def analyze_and_predict(
                 "Price_Band": band_label,
                 "Stock": ticker,
                 "Company_Name": company_name,
-                "Buy_Price": round(curr_price, 2),
+                "Buy_Price": round(
+                    curr_price, 2
+                ),  # yesterday's close — limit order reference
                 "Exit_Target": round(exit_target, 2),
                 "Gross_ROI_%": gross_roi,
-                "After_Tax_ROI_%": after_tax_roi,
+                "After_Tax_ROI_%": after_tax_roi,  # already bakes in 2% slippage
                 "Tax_Type": tax_label,
                 "Min_Hold_Until": min_hold_until.strftime("%d %b %Y"),
                 "Best_Sell_Date": best_sell_date.strftime("%d %b %Y"),

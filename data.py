@@ -18,17 +18,91 @@ logging.getLogger("yfinance").setLevel(logging.CRITICAL)
 
 # ─────────────────────────────────────────────
 # FUNDAMENTAL FILTER THRESHOLDS
-# These are conservative thresholds for NSE large/mid caps
 # ─────────────────────────────────────────────
-MAX_PE_RATIO = 80.0  # Exclude extremely overvalued stocks
 MIN_PE_RATIO = 1.0  # Exclude negative earnings / shell companies
 MIN_PROMOTER_HOLDING = 25.0  # Promoter holding below 25% = low conviction
-MAX_PROMOTER_PLEDGE = 40.0  # High pledge = distress risk
-MIN_REVENUE_GROWTH = -0.10  # Exclude companies with >10% revenue decline
+MAX_PROMOTER_PLEDGE = 35.0  # High pledge = distress risk
+MIN_REVENUE_GROWTH = -0.08  # Exclude companies with >8% revenue decline
 
-# Sector-specific D/E thresholds — a blanket limit is wrong
-# Each sector has a different natural capital structure
-# None = no cap applied (financial sector — leverage is their business model)
+# ─────────────────────────────────────────────
+# SECTOR-SPECIFIC PE LIMITS
+# Blanket PE cap is wrong — different sectors trade at structurally
+# different multiples based on growth profile and capital intensity
+# ─────────────────────────────────────────────
+# ─────────────────────────────────────────────
+# PE and D/E limits are looked up using BOTH sector AND industry
+# from yfinance — industry gives granular distinction within a sector
+#
+# yfinance exact sector strings:
+#   "Financial Services", "Utilities", "Industrials", "Technology",
+#   "Communication Services", "Basic Materials", "Consumer Cyclical",
+#   "Consumer Defensive", "Healthcare", "Energy", "Real Estate"
+#
+# industry strings give granularity within sector e.g.:
+#   Financial Services → "Banks—Private Sector" / "Consumer Finance" /
+#                        "Insurance—Life" / "Credit Services" / "Capital Markets"
+#   Industrials        → "Electronic Components" (EMS/PLI) vs "Aerospace & Defense"
+#   Technology         → "Software—Application" (high-growth) vs "Information Technology Services"
+# ─────────────────────────────────────────────
+
+# Industry-level PE overrides — checked FIRST before sector-level
+# Keys match exact yfinance industry strings
+INDUSTRY_PE_LIMITS = {
+    # Financial — granular by sub-type
+    "Banks—Private Sector": 22,  # HDFC Bank(18), ICICI(18), Axis(16)
+    "Banks—Public Sector": 12,  # SBI(9), Bank of Baroda(7) — PSU discount
+    "Consumer Finance": 35,  # Bajaj Finance(28), Chola(30) — NBFC
+    "Insurance—Life": 55,  # HDFC Life(45), SBI Life(40)
+    "Insurance—General": 45,  # Star Health(35)
+    "Capital Markets": 25,  # Motilal Oswal(18), Angel One(20)
+    "Mortgage Finance": 28,  # Can Fin Homes(12), LIC Housing(8)
+    "Credit Services": 30,  # CreditAccess(18), Ujjivan(12) — MFI
+    # Industrials — wide range, granular limits prevent PLI moonshots
+    "Electronic Components": 65,  # Amber(157)✗ Dixon(190)✗ — still too high
+    "Aerospace & Defense": 35,  # HAL(30), BEL(25), GRSE(20)
+    "Specialty Industrial Machinery": 65,  # Siemens(60), ABB(70), Cummins(45)
+    "Engineering & Construction": 30,  # L&T(25), NCC(15)
+    "Farm & Heavy Construction Machinery": 30,  # Escorts(25), BEML(20)
+    # Technology — high-growth product cos get more room
+    "Software—Application": 75,  # KPIT(55), Tata Elxsi(50), Persistent(45)
+    "Information Technology Services": 32,  # TCS(28), Infosys(25), Wipro(22)
+    "Software—Infrastructure": 55,
+    # Healthcare — hospitals justify higher PE than pharma
+    "Medical Care Facilities": 80,  # Apollo Hospitals(70), Narayana(60)
+    "Drug Manufacturers—General": 38,  # Sun Pharma(35), Dr Reddy(20), Cipla(25)
+    # Utilities — regulated is low growth, renewables excluded at sector level
+    "Utilities—Regulated Electric": 22,  # NTPC(15), Power Grid(18)
+    "Utilities—Renewable": 35,  # Tata Power(30) — capped, Adani Green(99)✗
+    "Utilities—Independent Power": 25,
+    # Energy granular
+    "Oil & Gas E&P": 15,  # ONGC(8), Oil India(10)
+    "Oil & Gas Refining & Marketing": 14,  # BPCL(12), HPCL(10), IOC(8)
+    "Oil & Gas Midstream": 18,  # GAIL(14), Petronet(12)
+}
+
+# Sector-level PE limits — fallback when industry key not matched
+SECTOR_PE_LIMITS = {
+    "Financial Services": 45,  # broad fallback for financial sector
+    "Utilities": 25,  # regulated utilities — low growth
+    "Infrastructure": 40,
+    "Energy": 18,  # commodity — low PE norm
+    "Real Estate": 65,
+    "Industrials": 65,  # capital goods, defence — quality plays
+    "Basic Materials": 55,  # Specialty Chem(50), Steel(15), Cement(35)
+    "Materials": 50,
+    "Consumer Cyclical": 78,
+    "Consumer Defensive": 65,
+    "Technology": 50,  # mature IT — mid-cap modest premium
+    "Healthcare": 76,  # pharma + hospital blend
+    "Communication Services": 45,
+    "Communication": 45,
+}
+DEFAULT_PE_LIMIT = 55  # fallback for unrecognised sectors
+
+# ─────────────────────────────────────────────
+# SECTOR-SPECIFIC D/E LIMITS
+# None = no cap (financial sector — leverage is their business model)
+# ─────────────────────────────────────────────
 SECTOR_DEBT_LIMITS = {
     # Financial — leverage IS the business model, no cap
     "Financial Services": None,
@@ -228,19 +302,15 @@ def fetch_fundamentals(ticker: str) -> dict | None:
     Returns a dict with:
         pe_ratio         — trailing PE ratio
         debt_to_equity   — total debt / total equity
-        promoter_holding — % held by promoters (India specific)
         revenue_growth   — YoY revenue growth
-        sector           — sector string for D/E filter exception
+        sector           — sector string for PE/D/E filter lookup
+        company_name     — display name for email output
 
-    Returns None if fundamental data is unavailable or stock fails filters.
-
-    Why each metric matters for real money:
+    Why each metric matters:
         PE ratio        — overpaying for earnings is the #1 mistake retail investors make
         Debt/Equity     — high debt kills companies in rate hike cycles (2022 lesson)
-        Promoter holding— promoters selling = insiders don't believe in the stock
         Revenue growth  — a stock can have great momentum but shrinking business
     """
-    # Return cached result if already fetched this run
     if ticker in _fundamentals_cache:
         return _fundamentals_cache[ticker]
 
@@ -256,16 +326,27 @@ def fetch_fundamentals(ticker: str) -> dict | None:
         if debt_to_equity is not None and debt_to_equity > 20:
             debt_to_equity = debt_to_equity / 100
 
-        # Full company name for display in results and email
         company_name = (
             info.get("longName") or info.get("shortName") or ticker.replace(".NS", "")
         )
+
+        industry = info.get("industry", "")
+
+        # Interest coverage ratio — earningsBeforeInterestAndTaxes / interestExpense
+        # Used as secondary check for high-debt infrastructure stocks
+        ebit = info.get("ebit")
+        interest_expense = info.get("interestExpense")
+        interest_coverage = None
+        if ebit is not None and interest_expense and interest_expense < 0:
+            interest_coverage = ebit / abs(interest_expense)
 
         result = {
             "pe_ratio": pe_ratio,
             "debt_to_equity": debt_to_equity,
             "revenue_growth": revenue_growth,
             "sector": sector,
+            "industry": industry,
+            "interest_coverage": interest_coverage,
             "company_name": company_name,
         }
         _fundamentals_cache[ticker] = result
@@ -277,7 +358,6 @@ def fetch_fundamentals(ticker: str) -> dict | None:
 
 
 # Simple in-memory cache — avoids fetching fundamentals twice per stock
-# (once in passes_fundamental_filter, once to get company_name/sector)
 _fundamentals_cache: dict = {}
 
 
@@ -287,45 +367,75 @@ def passes_fundamental_filter(ticker: str) -> tuple[bool, str]:
     Returns (False, reason) if it fails — reason logged for transparency.
 
     Checks:
-        1. PE ratio — not astronomically overvalued
-        2. Debt/Equity — not dangerously leveraged (except financial sector)
+        1. PE ratio  — industry-specific first, sector-level fallback
+        2. D/E ratio — sector-specific limit (financial sector exempt)
+                       D/E scaling: yfinance returns percentage (250 = 2.5x) — normalised in fetch
         3. Revenue growth — business not in structural decline
+        4. Interest coverage — secondary check for high-debt infra stocks (D/E > 4.0)
 
-    Promoter holding is not available via yfinance for NSE —
-    would need NSE API or screener.in scraping. Skipped for now.
+    Promoter holding not available via yfinance for NSE — skipped.
     """
     fundamentals = fetch_fundamentals(ticker)
 
     if fundamentals is None:
-        # If we can't fetch fundamentals, let the stock through
-        # Better to include uncertain than exclude valid stocks
+        # Can't fetch fundamentals — let through rather than exclude valid stocks
         return True, ""
 
     pe = fundamentals["pe_ratio"]
     de = fundamentals["debt_to_equity"]
     rev_gr = fundamentals["revenue_growth"]
     sector = fundamentals["sector"]
+    industry = fundamentals.get("industry", "")
+    icr = fundamentals.get("interest_coverage")
 
-    # ── PE ratio check ──
+    # ── PE ratio check — industry-level first, sector-level fallback ──
     if pe is not None:
         if pe < MIN_PE_RATIO:
             return False, f"PE={pe:.1f} — negative or near-zero earnings"
-        if pe > MAX_PE_RATIO:
-            return False, f"PE={pe:.1f} — extremely overvalued (>{MAX_PE_RATIO}x)"
 
-    # ── Debt/Equity check — sector-specific limit ──
-    # Look up this sector's D/E limit; None means no cap (financial sector)
+        # Step 1: check industry-level limit (most granular)
+        pe_limit = None
+        for ind_key, limit in INDUSTRY_PE_LIMITS.items():
+            if ind_key.lower() in industry.lower():
+                pe_limit = limit
+                break
+
+        # Step 2: fall back to sector-level if no industry match
+        if pe_limit is None:
+            pe_limit = DEFAULT_PE_LIMIT
+            for sector_key, limit in SECTOR_PE_LIMITS.items():
+                if sector_key.lower() in sector.lower():
+                    pe_limit = limit
+                    break
+
+        if pe > pe_limit:
+            return False, (
+                f"PE={pe:.1f} — overvalued for {industry or sector} (limit={pe_limit}x)"
+            )
+
+    # ── D/E ratio check — sector-specific limit ──
+    # D/E is already normalised in fetch_fundamentals (divided by 100 if >20)
     de_limit = DEFAULT_DEBT_LIMIT
     for sector_key, limit in SECTOR_DEBT_LIMITS.items():
         if sector_key.lower() in sector.lower():
             de_limit = limit
             break
+
     if de is not None and de_limit is not None:
         if de > de_limit:
-            return (
-                False,
-                f"D/E={de:.2f} — too high for {sector} sector (limit={de_limit}x)",
+            return False, (
+                f"D/E={de:.2f} — too high for {sector} sector (limit={de_limit}x)"
             )
+
+        # ── Interest coverage secondary check for high-debt stocks ──
+        # D/E > 4.0 for non-financial stocks warrants extra scrutiny
+        # ICR < 2.0 means debt servicing is at risk — filter out
+        if de > 4.0 and de_limit is not None:
+            if icr is not None and icr < 2.0:
+                return False, (
+                    f"D/E={de:.2f} is high and ICR={icr:.1f}x — "
+                    f"debt servicing at risk (need ICR >= 2.0)"
+                )
 
     # ── Revenue growth check ──
     if rev_gr is not None:

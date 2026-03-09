@@ -39,7 +39,7 @@ from config import MAX_ANNUAL_RETURN, MIN_ANNUAL_RETURN
 # 0.5  = mild        (slight preference for stable stocks)
 # 1.0  = standard    (Sharpe-ratio equivalent)
 # 2.0  = aggressive  (strongly punishes volatile stocks)
-VOLATILITY_PENALTY = 0.48  # between mild and standard — good for NSE mid/large caps
+VOLATILITY_PENALTY = 0.53  # between mild and standard — good for NSE mid/large caps
 
 # Lookback window for estimating mean return and volatility
 # 252 = 1 year — captures recent regime without overfitting to distant history

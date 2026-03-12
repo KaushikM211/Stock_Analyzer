@@ -33,7 +33,7 @@ PRICE_BANDS = [
 ]
 
 # Top N picks per price band
-TOP_N_PER_BAND = 10
+TOP_N_PER_BAND = 7
 
 # Minimum trading days required to run any model
 MIN_DAYS = 60

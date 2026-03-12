@@ -12,8 +12,8 @@ from config import MAX_SECTOR_PER_PORTFOLIO
 # ─────────────────────────────────────────────
 # PARAMETERS
 # ─────────────────────────────────────────────
-MONTHLY_BUDGET = 50_000
-MAX_STOCKS = 7  # max stocks per combination
+MONTHLY_BUDGET = 1_00_000
+MAX_STOCKS = 12  # max stocks per combination
 MIN_ALLOCATION = 2_000  # ₹2,000 minimum per position
 MAX_SINGLE_PCT = 0.30  # max 30% in any single stock
 

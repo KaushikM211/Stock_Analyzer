@@ -1,17 +1,83 @@
-name: Monthly Stock Analysis
+name: NSE Stock Analysis
 
 on:
   schedule:
-    - cron: "0 4 1 * *"
-    - cron: "0 4 2 * *"
-    - cron: "0 4 3 * *"
-    - cron: "0 4 4 * *"
+    # ── Monthly deployment — 1st–4th of every month ──
+    # Run 1 at 9:00 AM IST (3:30 AM UTC) — pre-market baseline + full email
+    - cron: "30 3 1 * *"
+    - cron: "30 3 2 * *"
+    - cron: "30 3 3 * *"
+    - cron: "30 3 4 * *"
+
+    # ── Daily intraday runs — every trading day ──
+    # Run 1: 9:00 AM IST  = 3:30 AM UTC  (pre-market baseline)
+    - cron: "30 3 * * 1-5"
+    # Run 2: 10:30 AM IST = 5:00 AM UTC  (live market 1)
+    - cron: "0 5 * * 1-5"
+    # Run 3: 12:30 PM IST = 7:00 AM UTC  (live market 2)
+    - cron: "0 7 * * 1-5"
+    # Run 4: 2:00 PM IST  = 8:30 AM UTC  (live market 3 — results by ~3:30 PM)
+    - cron: "30 8 * * 1-5"
+
   workflow_dispatch:
+    inputs:
+      run_type:
+        description: "Run type: full / intraday"
+        required: false
+        default: "full"
+      run_label:
+        description: "Label for intraday run e.g. 'Live-1 10:30'"
+        required: false
+        default: "Manual Run"
 
 jobs:
+  # ─────────────────────────────────────────────
+  # Determine which type of run this is
+  # ─────────────────────────────────────────────
+  setup:
+    runs-on: ubuntu-latest
+    outputs:
+      run_type:  ${{ steps.detect.outputs.run_type }}
+      run_label: ${{ steps.detect.outputs.run_label }}
+    steps:
+      - name: Detect run type from cron time
+        id: detect
+        run: |
+          HOUR=$(date -u +%H)
+          MIN=$(date -u +%M)
+          TIME="${HOUR}${MIN}"
+
+          # Manual dispatch
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "run_type=${{ github.event.inputs.run_type }}" >> $GITHUB_OUTPUT
+            echo "run_label=${{ github.event.inputs.run_label }}" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          # Classify by UTC time
+          if [ "$TIME" -le "0345" ]; then
+            echo "run_type=full"      >> $GITHUB_OUTPUT
+            echo "run_label=Pre-Market 09:00" >> $GITHUB_OUTPUT
+          elif [ "$TIME" -le "0515" ]; then
+            echo "run_type=intraday"  >> $GITHUB_OUTPUT
+            echo "run_label=Live-1 10:30"     >> $GITHUB_OUTPUT
+          elif [ "$TIME" -le "0715" ]; then
+            echo "run_type=intraday"  >> $GITHUB_OUTPUT
+            echo "run_label=Live-2 12:30"     >> $GITHUB_OUTPUT
+          else
+            echo "run_type=intraday"  >> $GITHUB_OUTPUT
+            echo "run_label=Live-3 14:00"     >> $GITHUB_OUTPUT
+          fi
+
+  # ─────────────────────────────────────────────
+  # Main analysis job
+  # ─────────────────────────────────────────────
   analyze:
+    needs: setup
     runs-on: ubuntu-latest
     timeout-minutes: 120
+    env:
+      SCAN_RESULTS_DIR: /tmp/scan_results
 
     steps:
       - name: Checkout repository
@@ -28,12 +94,55 @@ jobs:
       - name: Install dependencies
         run: uv sync
 
+      - name: Cache CmdStan
+        uses: actions/cache@v4
+        with:
+          path: ~/.cmdstan
+          key: cmdstan-${{ runner.os }}-v1
+
       - name: Install CmdStan
-        run: uv run python -c "import cmdstanpy; cmdstanpy.install_cmdstan()"
+        run: |
+          uv run python -c "
+          import os, cmdstanpy
+          path = os.path.expanduser('~/.cmdstan')
+          if not os.path.exists(path) or not os.listdir(path):
+              print('Installing CmdStan...')
+              cmdstanpy.install_cmdstan()
+          else:
+              print('CmdStan already cached — skipping install')
+          "
+
+      # ── Download previous run artifacts for intraday comparison ──
+      - name: Download previous run results
+        if: needs.setup.outputs.run_type == 'intraday'
+        uses: actions/download-artifact@v4
+        with:
+          pattern: scan-results-*
+          path: /tmp/scan_results
+          merge-multiple: true
+        continue-on-error: true   # first intraday of day has no previous artifacts
 
       - name: Run stock analyzer
         env:
           GMAIL_SENDER:    ${{ secrets.GMAIL_SENDER }}
           GMAIL_PASSWORD:  ${{ secrets.GMAIL_PASSWORD }}
           GMAIL_RECIPIENT: ${{ secrets.GMAIL_RECIPIENT }}
-        run: uv run python main.py
+          SCAN_RESULTS_DIR: /tmp/scan_results
+        run: |
+          RUN_TYPE="${{ needs.setup.outputs.run_type }}"
+          RUN_LABEL="${{ needs.setup.outputs.run_label }}"
+
+          if [ "$RUN_TYPE" = "full" ]; then
+            uv run python main.py --force
+          else
+            uv run python main.py --intraday "$RUN_LABEL"
+          fi
+
+      # ── Upload results as artifact for later runs to compare ──
+      - name: Upload run results artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: scan-results-${{ github.run_id }}
+          path: /tmp/scan_results/
+          retention-days: 1    # only needed within the same day
+        continue-on-error: true

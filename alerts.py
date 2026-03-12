@@ -7,6 +7,7 @@ import smtplib
 from datetime import datetime
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+from consolidate import ROI_IMPROVEMENT_THRESHOLD
 
 
 def _band_table(results: dict) -> str:
@@ -286,4 +287,182 @@ def send_email_alert(
         subject=f"💼 [2/2] Nifty 500 Portfolio Combinations — {today}",
         html=_build_portfolio_html(portfolios or []),
         label="Email 2/2 (Portfolios)",
+    )
+
+
+def _build_improvement_html(
+    run_label: str,
+    current_roi: float,
+    previous_roi: float,
+    improvement: float,
+    best_combo: dict,
+    improved_stocks: list,
+    current_results: dict,
+    current_portfolios: list,
+) -> str:
+    """Builds improvement alert email HTML."""
+    now = datetime.now().strftime("%I:%M %p")
+    today = datetime.today().strftime("%d %b %Y")
+    s = best_combo.get("summary", {})
+    pf = best_combo.get("portfolio", [])
+
+    # ── Improved stocks table ──
+    improved_rows = ""
+    for i, st in enumerate(improved_stocks):
+        bg = "#fffbeb" if i % 2 == 0 else "#ffffff"
+        improved_rows += f"""
+        <tr style="background:{bg};">
+            <td style="padding:8px; font-weight:bold;">{st["ticker"]}</td>
+            <td style="padding:8px; color:#555;">{st["company"]}</td>
+            <td style="padding:8px; color:#666;">₹{st["prev_price"]}</td>
+            <td style="padding:8px; color:#16a34a; font-weight:bold;">₹{st["curr_price"]}</td>
+            <td style="padding:8px; color:#dc2626; font-weight:bold;">▼ {st["pct_drop"]}%</td>
+        </tr>"""
+
+    improved_section = ""
+    if improved_stocks:
+        improved_section = f"""
+        <h3 style="color:#b45309; margin-top:24px; border-bottom:2px solid #f59e0b;
+                   padding-bottom:4px;">📉 Stocks With Better Entry Price Now</h3>
+        <table style="width:100%; border-collapse:collapse; font-size:13px; margin-bottom:16px;">
+            <thead>
+                <tr style="background:#fef3c7; text-align:left;">
+                    <th style="padding:8px;">Ticker</th>
+                    <th style="padding:8px;">Company</th>
+                    <th style="padding:8px;">Previous Price</th>
+                    <th style="padding:8px;">Current Price</th>
+                    <th style="padding:8px;">Drop</th>
+                </tr>
+            </thead>
+            <tbody>{improved_rows}</tbody>
+        </table>"""
+
+    # ── Best combo portfolio table ──
+    combo_rows = ""
+    for i, row in enumerate(pf):
+        bg = "#f9fafb" if i % 2 == 0 else "#ffffff"
+        combo_rows += f"""
+        <tr style="background:{bg};">
+            <td style="padding:7px; font-weight:bold;">{row.get("Stock", "")}</td>
+            <td style="padding:7px; color:#555;">{row.get("Company_Name", "")}</td>
+            <td style="padding:7px;">₹{row.get("Buy_Price", "")}</td>
+            <td style="padding:7px; font-weight:bold;">{int(row.get("Shares", 0))}</td>
+            <td style="padding:7px;">₹{float(row.get("Invested", 0)):,.0f}</td>
+            <td style="padding:7px; color:#16a34a; font-weight:bold;">
+                +{row.get("Net_ROI_%", "")}%
+            </td>
+            <td style="padding:7px;">{row.get("Best_Sell_Date", "")}</td>
+        </tr>"""
+
+    return f"""
+    <html><body style="font-family:Arial,sans-serif; max-width:900px;
+                        margin:auto; color:#1a1a1a;">
+
+    <div style="background:#dc2626; color:white; padding:16px 20px;
+                border-radius:6px 6px 0 0;">
+        <h2 style="margin:0; font-size:18px;">
+            🚨 Better Entry Alert — {run_label}
+        </h2>
+        <p style="margin:4px 0 0; font-size:13px; opacity:0.9;">
+            {today} at {now} &nbsp;|&nbsp; Act now — prices may recover
+        </p>
+    </div>
+
+    <div style="background:#fef2f2; border:1px solid #fca5a5;
+                padding:14px 20px; margin-bottom:20px;">
+        <table style="width:100%; font-size:14px;">
+            <tr>
+                <td style="padding:4px;">📈 <strong>Previous Best ROI:</strong></td>
+                <td style="color:#6b7280; font-weight:bold;">{previous_roi:.2f}%</td>
+                <td style="padding:4px;">🎯 <strong>Current Best ROI:</strong></td>
+                <td style="color:#16a34a; font-weight:bold; font-size:16px;">{current_roi:.2f}%</td>
+                <td style="padding:4px;">⬆️ <strong>Improvement:</strong></td>
+                <td style="color:#dc2626; font-weight:bold;">+{improvement:.2f}%</td>
+            </tr>
+        </table>
+    </div>
+
+    {improved_section}
+
+    <h3 style="color:#0f3460; margin-top:24px; border-bottom:2px solid #0f3460;
+               padding-bottom:4px;">
+        💼 Best Combination Now — {best_combo.get("name", "")}
+    </h3>
+    <p style="color:#555; font-size:13px;">{best_combo.get("description", "")}</p>
+    <div style="background:#f0fdf4; border:1px solid #86efac; padding:10px 16px;
+                border-radius:4px; margin-bottom:12px;">
+        💰 <strong>Invested:</strong> ₹{s.get("Total_Invested", 0):,} &nbsp;|&nbsp;
+        📈 <strong>Net Profit:</strong> ₹{s.get("Total_Net_Profit", 0):,} &nbsp;|&nbsp;
+        🎯 <strong>Portfolio ROI:</strong>
+            <strong style="color:#16a34a; font-size:15px;">{s.get("Portfolio_ROI_%", 0)}%</strong>
+    </div>
+    <table style="width:100%; border-collapse:collapse; font-size:12px; margin-bottom:20px;">
+        <thead>
+            <tr style="background:#0f3460; color:white; text-align:left;">
+                <th style="padding:7px;">Ticker</th>
+                <th style="padding:7px;">Company</th>
+                <th style="padding:7px;">Buy At</th>
+                <th style="padding:7px;">Shares</th>
+                <th style="padding:7px;">Invested</th>
+                <th style="padding:7px;">Net ROI</th>
+                <th style="padding:7px;">Best Sell</th>
+            </tr>
+        </thead>
+        <tbody>{combo_rows}</tbody>
+    </table>
+
+    <hr style="border:1px solid #ddd;"/>
+    <p style="color:#999; font-size:11px;">
+        Improvement threshold: {ROI_IMPROVEMENT_THRESHOLD}% | Run: {run_label} at {now}<br/>
+        Model-based screener — not financial advice. Verify before investing.
+    </p>
+    </body></html>"""
+
+
+def send_improvement_alert(
+    run_label: str,
+    current_roi: float,
+    previous_roi: float,
+    improvement: float,
+    best_combo: dict,
+    improved_stocks: list,
+    current_results: dict,
+    current_portfolios: list,
+) -> None:
+    """Sends a single improvement alert email."""
+
+    sender = os.getenv("GMAIL_SENDER", "").strip().strip('"').strip("'")
+    password = os.getenv("GMAIL_PASSWORD", "").strip().strip('"').strip("'")
+    recipient = os.getenv("GMAIL_RECIPIENT", "").strip().strip('"').strip("'")
+
+    if not all([sender, password, recipient]):
+        print("❌ Email credentials missing.")
+        return
+
+    now = datetime.now().strftime("%I:%M %p")
+    today = datetime.today().strftime("%d %b %Y")
+    subject = (
+        f"🚨 Better Entry Alert ({run_label}) — "
+        f"ROI {previous_roi:.1f}% → {current_roi:.1f}% "
+        f"(+{improvement:.1f}%) — {today} {now}"
+    )
+
+    html = _build_improvement_html(
+        run_label=run_label,
+        current_roi=current_roi,
+        previous_roi=previous_roi,
+        improvement=improvement,
+        best_combo=best_combo,
+        improved_stocks=improved_stocks,
+        current_results=current_results,
+        current_portfolios=current_portfolios,
+    )
+
+    _send_single(
+        sender,
+        password,
+        recipient,
+        subject=subject,
+        html=html,
+        label=f"Improvement Alert ({run_label})",
     )

@@ -2,15 +2,23 @@ name: NSE Stock Analysis
 
 on:
   schedule:
-    # ── 4 runs every trading day (Mon–Fri) ──
-    # Run 1: 9:00 AM IST  = 3:30 AM UTC  (pre-market baseline)
+    # ── Every 30 mins during market hours, Mon–Fri ──
+    # Market hours: 9:00 AM – 3:30 PM IST = 3:30 AM – 10:00 AM UTC
+    # Run every 30 mins = 13 runs per day
+    # Run 1 at 9:00 AM IST = 3:30 AM UTC (baseline / monthly email)
     - cron: "30 3 * * 1-5"
-    # Run 2: 10:30 AM IST = 5:00 AM UTC  (live market 1)
+    - cron: "0 4 * * 1-5"
+    - cron: "30 4 * * 1-5"
     - cron: "0 5 * * 1-5"
-    # Run 3: 12:30 PM IST = 7:00 AM UTC  (live market 2)
+    - cron: "30 5 * * 1-5"
+    - cron: "0 6 * * 1-5"
+    - cron: "30 6 * * 1-5"
     - cron: "0 7 * * 1-5"
-    # Run 4: 2:00 PM IST  = 8:30 AM UTC  (live market 3 — results by ~3:30 PM)
+    - cron: "30 7 * * 1-5"
+    - cron: "0 8 * * 1-5"
     - cron: "30 8 * * 1-5"
+    - cron: "0 9 * * 1-5"
+    - cron: "30 9 * * 1-5"
 
   workflow_dispatch:
     inputs:
@@ -19,14 +27,11 @@ on:
         required: false
         default: "force"
       run_label:
-        description: "Label for intraday run e.g. 'Live-1 10:30'"
+        description: "Label e.g. 'Live-1 10:30'"
         required: false
         default: "Manual Run"
 
 jobs:
-  # ─────────────────────────────────────────────
-  # Determine which type of run this is
-  # ─────────────────────────────────────────────
   setup:
     runs-on: ubuntu-latest
     outputs:
@@ -36,46 +41,35 @@ jobs:
       - name: Detect run type from cron time
         id: detect
         run: |
-          # Manual dispatch — use inputs directly
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             echo "run_type=${{ github.event.inputs.run_type }}" >> $GITHUB_OUTPUT
             echo "run_label=${{ github.event.inputs.run_label }}" >> $GITHUB_OUTPUT
             exit 0
           fi
 
-          # Scheduled — classify by UTC time
           HOUR=$(date -u +%H)
           MIN=$(date -u +%M)
-          # Zero-pad and combine for numeric comparison
           TIME=$(printf "%02d%02d" $HOUR $MIN)
+          # Convert UTC to IST label (UTC + 5:30)
+          IST_MINS=$(( 10#$HOUR * 60 + 10#$MIN + 330 ))
+          IST_H=$(( IST_MINS / 60 % 24 ))
+          IST_M=$(( IST_MINS % 60 ))
+          IST_LABEL=$(printf "%02d:%02d IST" $IST_H $IST_M)
 
           if [ "$TIME" -le "0345" ]; then
-            # 3:30 AM UTC = 9:00 AM IST — Run 1 (daily baseline or monthly email)
-            echo "run_type=daily"     >> $GITHUB_OUTPUT
-            echo "run_label=Pre-Market 09:00" >> $GITHUB_OUTPUT
-          elif [ "$TIME" -le "0515" ]; then
-            # 5:00 AM UTC = 10:30 AM IST — Run 2
-            echo "run_type=intraday"  >> $GITHUB_OUTPUT
-            echo "run_label=Live-1 10:30"     >> $GITHUB_OUTPUT
-          elif [ "$TIME" -le "0715" ]; then
-            # 7:00 AM UTC = 12:30 PM IST — Run 3
-            echo "run_type=intraday"  >> $GITHUB_OUTPUT
-            echo "run_label=Live-2 12:30"     >> $GITHUB_OUTPUT
+            echo "run_type=daily"    >> $GITHUB_OUTPUT
+            echo "run_label=Pre-Market 09:00 IST" >> $GITHUB_OUTPUT
           else
-            # 8:30 AM UTC = 2:00 PM IST — Run 4
-            echo "run_type=intraday"  >> $GITHUB_OUTPUT
-            echo "run_label=Live-3 14:00"     >> $GITHUB_OUTPUT
+            echo "run_type=intraday" >> $GITHUB_OUTPUT
+            echo "run_label=Live $IST_LABEL" >> $GITHUB_OUTPUT
           fi
 
-  # ─────────────────────────────────────────────
-  # Main analysis job
-  # ─────────────────────────────────────────────
   analyze:
     needs: setup
     runs-on: ubuntu-latest
     timeout-minutes: 120
-    env:
-      SCAN_RESULTS_DIR: /tmp/scan_results
+    permissions:
+      contents: write    # needed to push to results-cache branch
 
     steps:
       - name: Checkout repository
@@ -110,44 +104,23 @@ jobs:
               print('CmdStan already cached — skipping install')
           "
 
-      # ── Download previous run artifacts (intraday runs only) ──
-      - name: Download previous run results
-        if: needs.setup.outputs.run_type == 'intraday'
-        uses: actions/download-artifact@v4
-        with:
-          pattern: scan-results-*
-          path: /tmp/scan_results
-          merge-multiple: true
-        continue-on-error: true   # no artifact on first intraday of day
-
       - name: Run stock analyzer
         env:
           GMAIL_SENDER:     ${{ secrets.GMAIL_SENDER }}
           GMAIL_PASSWORD:   ${{ secrets.GMAIL_PASSWORD }}
           GMAIL_RECIPIENT:  ${{ secrets.GMAIL_RECIPIENT }}
+          GITHUB_TOKEN:     ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_WORKSPACE: ${{ github.workspace }}
           SCAN_RESULTS_DIR: /tmp/scan_results
         run: |
           RUN_TYPE="${{ needs.setup.outputs.run_type }}"
           RUN_LABEL="${{ needs.setup.outputs.run_label }}"
 
           if [ "$RUN_TYPE" = "force" ]; then
-            # Manual trigger — always full email
             uv run python main.py --force
-
           elif [ "$RUN_TYPE" = "daily" ]; then
-            # Run 1 every day — full email on 1st trading day, silent otherwise
             uv run python main.py --daily
-
           else
-            # Runs 2, 3, 4 — alert only if ROI improved 1.5%+
             uv run python main.py --intraday "$RUN_LABEL"
           fi
-
-      # ── Upload results artifact for later runs to compare ──
-      - name: Upload run results artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: scan-results-${{ github.run_id }}
-          path: /tmp/scan_results/
-          retention-days: 1    # only needed within the same trading day
-        continue-on-error: true

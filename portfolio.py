@@ -15,7 +15,7 @@ from config import MAX_SECTOR_PER_PORTFOLIO
 MONTHLY_BUDGET = 1_00_000
 MAX_STOCKS = 12  # max stocks per combination
 MIN_ALLOCATION = 2_000  # ₹2,000 minimum per position
-MAX_SINGLE_PCT = 0.30  # max 30% in any single stock
+MAX_SINGLE_PCT = 0.20  # max 20% in any single stock
 
 # ICICI Direct delivery brokerage — 0.55% on transaction value (both legs)
 # Delivery trades held 12+ months — charged on buy and sell

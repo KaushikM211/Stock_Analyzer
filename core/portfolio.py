@@ -7,21 +7,15 @@
 import math
 import pandas as pd
 from datetime import datetime  # noqa: F401
-from .config import (
-    LTCG_TAX_RATE,
-    LTCG_EXEMPTION,
-    CESS_RATE,
-    STT_RATE,
-    MAX_SECTOR_PER_PORTFOLIO,
-)
+from core.config import MAX_SECTOR_PER_PORTFOLIO
 
 # ─────────────────────────────────────────────
 # PARAMETERS
 # ─────────────────────────────────────────────
-MONTHLY_BUDGET = 1_00_000
-MAX_STOCKS = 12  # max stocks per combination
+MONTHLY_BUDGET = 50_000
+MAX_STOCKS = 10  # max stocks per combination
 MIN_ALLOCATION = 2_000  # ₹2,000 minimum per position
-MAX_SINGLE_PCT = 0.20  # max 20% in any single stock
+MAX_SINGLE_PCT = 0.30  # max 30% in any single stock
 
 # ICICI Direct delivery brokerage — 0.55% on transaction value (both legs)
 # Delivery trades held 12+ months — charged on buy and sell
@@ -90,6 +84,7 @@ def _flatten_all(results: dict) -> pd.DataFrame:
 
 def _compute_position(row: pd.Series, alloc_amount: float) -> dict | None:
     """Compute a single stock position given an allocation amount."""
+    from core.config import LTCG_TAX_RATE, LTCG_EXEMPTION, CESS_RATE, STT_RATE
 
     price = row["Buy_Price"]
 
@@ -123,6 +118,8 @@ def _compute_position(row: pd.Series, alloc_amount: float) -> dict | None:
         "Net_ROI_%": round(net_roi, 2),
         "Best_Sell_Date": row["Best_Sell_Date"],
         "Forecast_Expires": row["Forecast_Expires"],
+        "Predicted_Best_Buy_Date": row.get("Predicted_Best_Buy_Date", "N/A"),
+        "Predicted_Best_Buy_Price": row.get("Predicted_Best_Buy_Price", "N/A"),
         "Turnover_Cr": row["Avg_Daily_Turnover_Cr"],
     }
 
@@ -208,7 +205,8 @@ def _allocate(stocks: pd.DataFrame, budget: float) -> pd.DataFrame:
                 extra_cost = extra_shares * price
             if extra_shares < 1:
                 continue
-            # Add shares to existing position and recompute values
+            # Add shares to existing position and recompute
+            from core.config import LTCG_TAX_RATE, LTCG_EXEMPTION, CESS_RATE, STT_RATE
 
             old_pos = positions[ticker]["pos"]
             new_shares = old_pos["Shares"] + extra_shares

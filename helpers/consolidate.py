@@ -150,7 +150,7 @@ def _push_to_cache_branch(filepath: str, now: datetime):
 
     repo = os.getenv("GITHUB_REPOSITORY", "")
     token = os.getenv("GITHUB_TOKEN", "")
-    workspace = os.getenv("GITHUB_WORKSPACE", "/home/runner/work")
+    workspace = os.getenv("GITHUB_WORKSPACE", "/home/runner/work")  # noqa: F841
 
     if not token:
         print("  ⚠ GITHUB_TOKEN not set — skipping cache push.")
@@ -236,7 +236,7 @@ def _pull_from_cache_branch(results_dir: str):
         # Extract only today's cache files
         today_str = date.today().strftime("%Y%m%d")
         result = subprocess.run(
-            ["git", "ls-tree", "-r", "--name-only", f"FETCH_HEAD"],
+            ["git", "ls-tree", "-r", "--name-only", f"FETCH_HEAD"],  # noqa: F541
             capture_output=True,
             text=True,
         )
@@ -321,7 +321,7 @@ def check_and_alert(
         roi, combo = _best_combo_roi(run["portfolios"])
         if roi > best_prev_roi:
             best_prev_roi = roi
-            best_prev_combo = combo
+            best_prev_combo = combo  # noqa: F841
         for ticker, data in _extract_stock_data(run["portfolios"]).items():
             if (
                 ticker not in best_prev_prices

@@ -18,6 +18,9 @@ dependencies = [
     "pandas-market-calendars>=4.4.0",
 ]
 
+[tool.setuptools]
+packages = ["core", "models", "helpers"]
+
 [build-system]
 requires = ["setuptools", "wheel"]
 build-backend = "setuptools.build_meta"

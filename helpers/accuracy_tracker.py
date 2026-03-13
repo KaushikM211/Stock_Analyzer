@@ -15,7 +15,7 @@ import json
 import glob
 import subprocess
 from datetime import date, timedelta
-
+from .alerts import send_accuracy_email
 import pandas as pd
 import yfinance as yf
 
@@ -154,7 +154,6 @@ def check_predictions(target_date: date | None = None) -> pd.DataFrame:
 
     target_date defaults to yesterday (the most recently completed trading day).
     """
-    from alerts import send_accuracy_email
 
     if target_date is None:
         target_date = date.today() - timedelta(days=1)

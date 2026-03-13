@@ -2,6 +2,7 @@
 name = "indian-stock-prescriptive-model"
 version = "0.1.0"
 description = "Ensemble stock prediction for NSE with email alerts"
+requires-python = ">=3.12"
 dependencies = [
     "niftystocks",
     "yfinance>=0.2.0",

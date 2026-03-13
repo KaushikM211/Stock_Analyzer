@@ -516,6 +516,7 @@ def _build_accuracy_html(
     full_log,
     mae: float,
     bias: float,
+    summary: list | None = None,
 ) -> str:
     """Builds accuracy report email HTML."""
     today = __import__("datetime").datetime.today().strftime("%d %b %Y")
@@ -574,8 +575,12 @@ def _build_accuracy_html(
                 </td>
                 <td style="padding:6px 16px;">
                     &#127919; <strong>Bias:</strong>
-                    <span style="color:{"#dc2626" if bias > 0 else "#16a34a"}; font-weight:bold;">
-                        {bias:+.2f}% ({"overestimates" if bias > 0 else "underestimates"})
+                    <span style="color:{
+        "#dc2626" if bias > 0 else "#16a34a"
+    }; font-weight:bold;">
+                        {bias:+.2f}% ({
+        "overestimates" if bias > 0 else "underestimates"
+    })
                     </span>
                 </td>
                 <td style="padding:6px 0;">
@@ -626,6 +631,43 @@ def _build_accuracy_html(
         </table>
     </div>
 
+    <!-- Convergence + Signal Summary -->
+    <h3 style="color:#0f3460; border-bottom:2px solid #0f3460; padding-bottom:4px;">
+        &#127919; Per-Stock Signal (Convergence + Historical Accuracy)
+    </h3>
+    <table style="width:100%; border-collapse:collapse; font-size:12px; margin-bottom:24px;">
+        <thead>
+            <tr style="background:#0f3460; color:white; text-align:left;">
+                <th style="padding:7px;">Stock</th>
+                <th style="padding:7px;">Best Buy Date</th>
+                <th style="padding:7px;">Price Range</th>
+                <th style="padding:7px;">Convergence</th>
+                <th style="padding:7px;">Runs Agree</th>
+                <th style="padding:7px;">Hist. Accuracy</th>
+                <th style="padding:7px;">Signal</th>
+            </tr>
+        </thead>
+        <tbody>
+        {
+        "".join(
+            [
+                f'''
+        <tr style="background:{"#f9fafb" if i % 2 == 0 else "#ffffff"};">
+            <td style="padding:7px; font-weight:bold;">{s["stock"]}</td>
+            <td style="padding:7px;">{s["conv"].get("Best_Buy_Date", "N/A")}</td>
+            <td style="padding:7px;">&#8377;{s["conv"].get("Price_Min", "?")} – &#8377;{s["conv"].get("Price_Max", "?")}</td>
+            <td style="padding:7px;">{s["conv"].get("Convergence_Label", "N/A")} {s["conv"].get("Convergence_Pct", "?")}%</td>
+            <td style="padding:7px;">{s["conv"].get("Runs_Agreeing", "?")} / {s["conv"].get("Total_Runs", "?")}</td>
+            <td style="padding:7px;">{"N/A (new)" if s["acc"].get("Total", 0) < 3 else f"{s['acc'].get('Hit_Rate_Pct', '?')}% ({s['acc'].get('Total', 0)} checks)"}</td>
+            <td style="padding:7px; font-weight:bold;">{s["signal"]}</td>
+        </tr>'''
+                for i, s in enumerate(summary or [])
+            ]
+        )
+    }
+        </tbody>
+    </table>
+
     <hr style="border:1px solid #ddd;"/>
     <p style="color:#999; font-size:11px;">
         Error % = (Actual &#8722; Predicted) / Predicted &times; 100<br/>
@@ -642,6 +684,7 @@ def send_accuracy_email(
     full_log,
     mae: float,
     bias: float,
+    summary: list | None = None,
 ) -> None:
     """Sends prediction accuracy report email."""
     sender, password, recipient = _get_credentials()
@@ -660,6 +703,7 @@ def send_accuracy_email(
         full_log=full_log,
         mae=mae,
         bias=bias,
+        summary=summary,
     )
 
     _send_single(

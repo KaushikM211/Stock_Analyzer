@@ -12,7 +12,7 @@ from core.scanner import analyze_and_predict
 from core.portfolio import build_portfolios, MONTHLY_BUDGET
 from helpers.alerts import send_email_alert
 from helpers.consolidate import save_run_results, check_and_alert
-from helpers.accuracy_tracker import check_predictions
+from helpers.accuracy_tracker import check_predictions, log_predictions
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -112,6 +112,7 @@ def run_analysis(run_label: str = "manual", send_full_email: bool = False):
     # ── Always save results for intraday comparison ──
     results_dir = os.getenv("SCAN_RESULTS_DIR", "/tmp/scan_results")
     save_run_results(results, portfolios, run_label, results_dir)
+    log_predictions(results, run_label)
 
     if send_full_email:
         # Monthly deployment day — send full report

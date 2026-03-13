@@ -28,7 +28,7 @@ from .config import (
     LTCG_HOLD_DAYS,
     BEST_BUY_LOOKFORWARD_DAYS,
 )
-from .data import (
+from core.data import (
     get_nifty500_tickers,
     fetch_best_available,
     fetch_sector_momentum,
@@ -36,7 +36,7 @@ from .data import (
     passes_fundamental_filter,
     fetch_fundamentals,
 )
-from .ensemble import ensemble_forecast
+from core.ensemble import ensemble_forecast
 
 warnings.filterwarnings("ignore")
 
@@ -254,6 +254,9 @@ def analyze_and_predict(
             if forecast_series is None:
                 return None
 
+            # ── Best buy date — predicted trough in next 30 trading days ──
+            best_buy_date_str, best_buy_price = _get_best_buy_date(forecast_series)
+
             ensemble_window = forecast_series.iloc[
                 TARGET_WINDOW_START:TARGET_WINDOW_END
             ]
@@ -335,6 +338,8 @@ def analyze_and_predict(
                 "Sector": sector,
                 "Liquidity": liquidity,
                 "Data_Days": len(close),
+                "Predicted_Best_Buy_Date": best_buy_date_str,
+                "Predicted_Best_Buy_Price": best_buy_price,
             }
 
         except Exception as e:

@@ -58,6 +58,8 @@ def _band_table(results: dict) -> str:
                 <td style="padding:7px;">{row["Min_Hold_Until"]}</td>
                 <td style="padding:7px; font-weight:bold;">{row["Best_Sell_Date"]}</td>
                 <td style="padding:7px; color:#dc2626;">{row["Forecast_Expires"]}</td>
+                <td style="padding:7px; color:#0f3460; font-weight:bold;">{row.get("Predicted_Best_Buy_Date", "N/A")}</td>
+                <td style="padding:7px; color:#0f3460;">&#8377;{row.get("Predicted_Best_Buy_Price", "N/A")}</td>
                 <td style="padding:7px;">&#8377;{row["Avg_Daily_Turnover_Cr"]}Cr</td>
             </tr>
             """

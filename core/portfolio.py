@@ -7,7 +7,13 @@
 import math
 import pandas as pd
 from datetime import datetime  # noqa: F401
-from .config import MAX_SECTOR_PER_PORTFOLIO
+from .config import (
+    LTCG_TAX_RATE,
+    LTCG_EXEMPTION,
+    CESS_RATE,
+    STT_RATE,
+    MAX_SECTOR_PER_PORTFOLIO,
+)
 
 # ─────────────────────────────────────────────
 # PARAMETERS
@@ -84,7 +90,6 @@ def _flatten_all(results: dict) -> pd.DataFrame:
 
 def _compute_position(row: pd.Series, alloc_amount: float) -> dict | None:
     """Compute a single stock position given an allocation amount."""
-    from config import LTCG_TAX_RATE, LTCG_EXEMPTION, CESS_RATE, STT_RATE
 
     price = row["Buy_Price"]
 
@@ -203,8 +208,7 @@ def _allocate(stocks: pd.DataFrame, budget: float) -> pd.DataFrame:
                 extra_cost = extra_shares * price
             if extra_shares < 1:
                 continue
-            # Add shares to existing position and recompute
-            from config import LTCG_TAX_RATE, LTCG_EXEMPTION, CESS_RATE, STT_RATE
+            # Add shares to existing position and recompute values
 
             old_pos = positions[ticker]["pos"]
             new_shares = old_pos["Shares"] + extra_shares

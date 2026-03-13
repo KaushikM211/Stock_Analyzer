@@ -5,7 +5,7 @@
 import numpy as np
 import pandas as pd
 
-from config import MACRO_MONTH_WEIGHTS
+from .config import MACRO_MONTH_WEIGHTS
 
 # Day-of-week return bias on NSE (empirically observed)
 # Used as a feature signal for XGBoost — not extrapolated forward

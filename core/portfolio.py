@@ -7,7 +7,7 @@
 import math
 import pandas as pd
 from datetime import datetime  # noqa: F401
-from config import MAX_SECTOR_PER_PORTFOLIO
+from .config import MAX_SECTOR_PER_PORTFOLIO
 
 # ─────────────────────────────────────────────
 # PARAMETERS

@@ -4,7 +4,7 @@
 
 import pandas as pd
 
-from config import FORECAST_HORIZON, MODEL_WEIGHTS
+from .config import FORECAST_HORIZON, MODEL_WEIGHTS
 from models import xgboost_forecast, prophet_forecast, holt_forecast, vpr_forecast
 
 
@@ -14,7 +14,7 @@ def ensemble_forecast(
     horizon: int = FORECAST_HORIZON,
 ) -> tuple[pd.Series, pd.Series, pd.Series | None] | tuple[None, None, None]:
     """
-    Runs all 3 models and returns:
+    Runs all 4 models and returns:
         1. Weighted ensemble price path   — used for ROI calculation
         2. Prophet yhat series            — used for peak date selection
         3. Prophet confidence width series — used for stock-specific expiry date
@@ -30,6 +30,7 @@ def ensemble_forecast(
     prophet_yhat = None
     prophet_conf_width = None
 
+    # ── 4-model ensemble: Prophet + XGBoost + Holt Damped Trend + VPR ──
     # ── Prophet ──
     try:
         p_yhat, p_upper, p_lower = prophet_forecast(close, horizon)

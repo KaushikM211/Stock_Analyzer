@@ -8,7 +8,7 @@ import pandas as pd
 from datetime import date
 from tqdm import tqdm
 
-from config import (
+from .config import (
     LOWER_LIMIT,
     UPPER_LIMIT,
     MIN_WEIGHTED_ROI,
@@ -26,8 +26,9 @@ from config import (
     CESS_RATE,
     STT_RATE,
     LTCG_HOLD_DAYS,
+    BEST_BUY_LOOKFORWARD_DAYS,
 )
-from data import (
+from .data import (
     get_nifty500_tickers,
     fetch_best_available,
     fetch_sector_momentum,
@@ -35,11 +36,11 @@ from data import (
     passes_fundamental_filter,
     fetch_fundamentals,
 )
-from ensemble import ensemble_forecast
+from .ensemble import ensemble_forecast
 
 warnings.filterwarnings("ignore")
 
-CONFIDENCE_THRESHOLD = 0.425
+CONFIDENCE_THRESHOLD = 0.40
 
 # Execution slippage buffer — yfinance uses yesterday's close as Buy_Price
 # Workflow runs at 9:30 AM IST, actual buy happens during market hours
@@ -144,6 +145,38 @@ def _get_confidence_expiry(
         return prophet_yhat.index[-1].strftime("%d %b %Y")
 
 
+def _get_best_buy_date(
+    forecast_series: "pd.Series",
+    lookforward_days: int = BEST_BUY_LOOKFORWARD_DAYS,
+) -> tuple[str, float]:
+    """
+    Finds the predicted price trough within the next N trading days.
+    This is the model's best guess for the cheapest entry point this month.
+
+    Logic:
+        - Take the first BEST_BUY_LOOKFORWARD_DAYS of the ensemble forecast
+        - Find the minimum predicted price (trough)
+        - Return the date and price of that trough
+
+    Used for:
+        1. Telling user "model predicts best entry on Mar 19 at ₹465"
+        2. Accuracy tracking — compare predicted vs actual after the date passes
+
+    Returns:
+        (date_str "DD Mon YYYY", predicted_price)
+    """
+    if forecast_series is None or forecast_series.empty:
+        return "N/A", 0.0
+
+    window = forecast_series.iloc[:lookforward_days]
+    if window.empty:
+        window = forecast_series.iloc[:1]
+
+    trough_idx = window.idxmin()
+    trough_price = float(window.min())
+    return trough_idx.strftime("%d %b %Y"), round(trough_price, 2)
+
+
 def analyze_and_predict(
     lower_limit: int = LOWER_LIMIT,
     upper_limit: int = UPPER_LIMIT,
@@ -178,6 +211,7 @@ def analyze_and_predict(
                 return None
 
             # Apply slippage buffer — actual execution price is ~2% above yesterday's close
+            # ROI shown to user is already conservative (assumes slightly worse entry)
             execution_price = curr_price * (1 + SLIPPAGE_BUFFER)
 
             # ── Fundamental filter ──
@@ -264,6 +298,8 @@ def analyze_and_predict(
                 )
                 return None
 
+            # ROI uses execution_price (2% slippage buffer) — conservative estimate
+            # Buy_Price shown to user is yesterday's close — use as limit order reference
             gross_roi, after_tax_roi, tax_label = _calculate_after_tax_roi(
                 buy_price=execution_price,
                 sell_price=exit_target,

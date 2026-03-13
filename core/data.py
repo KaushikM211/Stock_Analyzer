@@ -10,7 +10,7 @@ import yfinance as yf
 from yfinance import download
 from niftystocks import ns
 
-from config import FETCH_PERIODS, MIN_DAYS, SECTOR_ETFS, TOP_SECTORS_COUNT
+from .config import FETCH_PERIODS, MIN_DAYS, SECTOR_ETFS, TOP_SECTORS_COUNT
 
 # Suppress noisy yfinance download warnings (delisted tickers etc.)
 logging.getLogger("yfinance").setLevel(logging.CRITICAL)

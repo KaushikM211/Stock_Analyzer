@@ -28,7 +28,7 @@
 import numpy as np
 import pandas as pd
 
-from config import MAX_ANNUAL_RETURN, MIN_ANNUAL_RETURN
+from core.config import MAX_ANNUAL_RETURN, MIN_ANNUAL_RETURN
 
 # ─────────────────────────────────────────────
 # TUNABLE PARAMETERS

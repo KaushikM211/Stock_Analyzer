@@ -53,6 +53,14 @@ MIN_DAYS = 60
 # ─────────────────────────────────────────────
 FORECAST_HORIZON = 504  # ~24 months of trading days
 
+# ─────────────────────────────────────────────
+# BEST BUY DATE PREDICTION
+# Trading days forward to scan for predicted price trough
+# 30 days = ~6 weeks — actionable near-term entry window
+# ─────────────────────────────────────────────
+
+BEST_BUY_LOOKFORWARD_DAYS = 30
+
 # Target window: start AFTER 12 months (LTCG threshold), no upper cap
 # Let the model find the natural peak anywhere from month 12 to month 24
 TARGET_WINDOW_START = 252  # trading day ~12 months (LTCG threshold)

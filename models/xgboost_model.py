@@ -8,9 +8,9 @@ from xgboost import XGBRegressor
 from sklearn.preprocessing import MinMaxScaler
 from statsmodels.tsa.holtwinters import ExponentialSmoothing
 
-from features import build_features
-from config import MAX_ANNUAL_RETURN, MIN_ANNUAL_RETURN, FORECAST_HORIZON
-from models.holt_model import DAMPING_FACTOR
+from core.features import build_features
+from core.config import MAX_ANNUAL_RETURN, MIN_ANNUAL_RETURN, FORECAST_HORIZON
+from .holt_model import DAMPING_FACTOR
 
 
 def _holt_path(close: pd.Series, horizon: int) -> np.ndarray:

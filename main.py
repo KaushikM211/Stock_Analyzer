@@ -8,10 +8,11 @@ import pandas as pd
 from datetime import date
 import pandas_market_calendars as mcal
 
-from scanner import analyze_and_predict
-from portfolio import build_portfolios, MONTHLY_BUDGET
-from alerts import send_email_alert
-from consolidate import save_run_results, check_and_alert
+from core.scanner import analyze_and_predict
+from core.portfolio import build_portfolios, MONTHLY_BUDGET
+from helpers.alerts import send_email_alert
+from helpers.consolidate import save_run_results, check_and_alert
+from helpers.accuracy_tracker import check_predictions
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -186,6 +187,12 @@ def main():
         else:
             print(f"[{today}] Daily baseline run — saving results, no email.")
             run_analysis(run_label="Daily Baseline 09:00", send_full_email=False)
+        return
+
+    # ── Accuracy check run ──
+    if "--accuracy" in args:
+        print(f"[{today}] Running prediction accuracy check...")
+        check_predictions()
         return
 
     # ── Default (no flag): same as --daily ──

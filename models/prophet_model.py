@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 from prophet import Prophet
 
-from config import MACRO_MONTH_WEIGHTS, MAX_ANNUAL_RETURN, MIN_ANNUAL_RETURN
+from core.config import MACRO_MONTH_WEIGHTS, MAX_ANNUAL_RETURN, MIN_ANNUAL_RETURN
 
 # ─────────────────────────────────────────────
 # MEAN REVERSION PARAMETERS

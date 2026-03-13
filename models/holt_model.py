@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 from statsmodels.tsa.holtwinters import ExponentialSmoothing
 
-from config import MAX_ANNUAL_RETURN, MIN_ANNUAL_RETURN
+from core.config import MAX_ANNUAL_RETURN, MIN_ANNUAL_RETURN
 
 # Damping factor — controls how quickly the trend fades over time
 # 0.80 = moderate damping (good for 8–12 month horizon)

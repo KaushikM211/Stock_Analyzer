@@ -11,7 +11,7 @@ import json
 import glob
 from datetime import datetime, date
 
-ROI_IMPROVEMENT_THRESHOLD = 1.5  # % — minimum improvement to trigger alert
+ROI_IMPROVEMENT_THRESHOLD = 1.5   # % — minimum improvement to trigger alert
 
 
 def save_run_results(
@@ -25,7 +25,7 @@ def save_run_results(
     Returns file path written.
     """
     os.makedirs(results_dir, exist_ok=True)
-    now = datetime.now()
+    now      = datetime.now()
     filename = os.path.join(results_dir, f"scan_{now.strftime('%H%M')}.json")
 
     # Serialise results — DataFrames → list of dicts
@@ -36,20 +36,18 @@ def save_run_results(
     # Serialise portfolios
     serialised_portfolios = []
     for combo in portfolios:
-        serialised_portfolios.append(
-            {
-                "name": combo["name"],
-                "description": combo["description"],
-                "summary": combo["summary"],
-                "portfolio": combo["portfolio"].to_dict(orient="records"),
-            }
-        )
+        serialised_portfolios.append({
+            "name":        combo["name"],
+            "description": combo["description"],
+            "summary":     combo["summary"],
+            "portfolio":   combo["portfolio"].to_dict(orient="records"),
+        })
 
     data = {
-        "date": date.today().isoformat(),
-        "run_label": run_label,
-        "run_time": now.strftime("%H:%M"),
-        "results": serialised_results,
+        "date":       date.today().isoformat(),
+        "run_label":  run_label,
+        "run_time":   now.strftime("%H:%M"),
+        "results":    serialised_results,
         "portfolios": serialised_portfolios,
     }
 
@@ -65,9 +63,9 @@ def load_previous_runs(results_dir: str = "/tmp/scan_results") -> list[dict]:
     Loads all JSON result files saved today (excluding current run).
     Returns list of run dicts sorted by time ascending.
     """
-    today = date.today().isoformat()
+    today   = date.today().isoformat()
     pattern = os.path.join(results_dir, "scan_*.json")
-    files = sorted(glob.glob(pattern))
+    files   = sorted(glob.glob(pattern))
 
     runs = []
     for f in files:
@@ -81,14 +79,28 @@ def load_previous_runs(results_dir: str = "/tmp/scan_results") -> list[dict]:
     return runs
 
 
+def _iter_portfolio_rows(portfolio) -> list[dict]:
+    """
+    Normalises portfolio to a list of dicts regardless of source.
+    - From build_portfolios() → pandas DataFrame → convert via to_dict
+    - From JSON load         → already list of dicts
+    """
+    import pandas as pd
+    if isinstance(portfolio, pd.DataFrame):
+        return portfolio.to_dict(orient="records")
+    if isinstance(portfolio, list):
+        return portfolio
+    return []
+
+
 def _best_combo_roi(portfolios: list) -> tuple[float, dict | None]:
     """Returns (best_roi, best_combo) from a portfolio list."""
-    best_roi = -999.0
+    best_roi   = -999.0
     best_combo = None
     for combo in portfolios:
         roi = combo["summary"].get("Portfolio_ROI_%", 0)
         if roi > best_roi:
-            best_roi = roi
+            best_roi   = roi
             best_combo = combo
     return best_roi, best_combo
 
@@ -97,9 +109,10 @@ def _lowest_prices(portfolios: list) -> dict[str, float]:
     """Returns {ticker: lowest_buy_price} across all combos."""
     prices = {}
     for combo in portfolios:
-        for stock in combo.get("portfolio", []):
+        rows = _iter_portfolio_rows(combo.get("portfolio", []))
+        for stock in rows:
             ticker = stock.get("Stock")
-            price = stock.get("Buy_Price")
+            price  = stock.get("Buy_Price")
             if ticker and price:
                 if ticker not in prices or price < prices[ticker]:
                     prices[ticker] = price
@@ -126,23 +139,23 @@ def check_and_alert(
         return False
 
     # Best ROI and lowest prices across ALL previous runs today
-    best_prev_roi = -999.0
-    best_prev_combo = None
+    best_prev_roi    = -999.0
+    best_prev_combo  = None
     best_prev_prices = {}
 
     for run in previous_runs:
         roi, combo = _best_combo_roi(run["portfolios"])
         if roi > best_prev_roi:
-            best_prev_roi = roi
-            best_prev_combo = combo  # noqa: F841
+            best_prev_roi   = roi
+            best_prev_combo = combo
         for ticker, price in _lowest_prices(run["portfolios"]).items():
             if ticker not in best_prev_prices or price < best_prev_prices[ticker]:
                 best_prev_prices[ticker] = price
 
     # Current run best
     curr_roi, curr_best_combo = _best_combo_roi(current_portfolios)
-    curr_prices = _lowest_prices(current_portfolios)
-    improvement = curr_roi - best_prev_roi
+    curr_prices               = _lowest_prices(current_portfolios)
+    improvement               = curr_roi - best_prev_roi
 
     print(f"\n  📊 ROI Comparison ({run_label})")
     print(f"     Previous best: {best_prev_roi:.2f}%")
@@ -162,33 +175,29 @@ def check_and_alert(
             # Find company name
             company = ticker.replace(".NS", "")
             for combo in current_portfolios:
-                for s in combo.get("portfolio", []):
+                for s in _iter_portfolio_rows(combo.get("portfolio", [])):
                     if s.get("Stock") == ticker:
                         company = s.get("Company_Name", company)
                         break
-            improved_stocks.append(
-                {
-                    "ticker": ticker,
-                    "company": company,
-                    "prev_price": prev_price,
-                    "curr_price": curr_price,
-                    "pct_drop": round(pct_drop, 2),
-                }
-            )
+            improved_stocks.append({
+                "ticker":     ticker,
+                "company":    company,
+                "prev_price": prev_price,
+                "curr_price": curr_price,
+                "pct_drop":   round(pct_drop, 2),
+            })
 
     improved_stocks.sort(key=lambda x: x["pct_drop"], reverse=True)
 
-    print(
-        f"  🚨 Improvement {improvement:+.2f}% >= {ROI_IMPROVEMENT_THRESHOLD}% — sending alert!"
-    )
+    print(f"  🚨 Improvement {improvement:+.2f}% >= {ROI_IMPROVEMENT_THRESHOLD}% — sending alert!")
     send_improvement_alert(
-        run_label=run_label,
-        current_roi=curr_roi,
-        previous_roi=best_prev_roi,
-        improvement=improvement,
-        best_combo=curr_best_combo,
-        improved_stocks=improved_stocks,
-        current_results=current_results,
-        current_portfolios=current_portfolios,
+        run_label          = run_label,
+        current_roi        = curr_roi,
+        previous_roi       = best_prev_roi,
+        improvement        = improvement,
+        best_combo         = curr_best_combo,
+        improved_stocks    = improved_stocks,
+        current_results    = current_results,
+        current_portfolios = current_portfolios,
     )
     return True

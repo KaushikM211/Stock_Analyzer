@@ -40,7 +40,7 @@ from core.ensemble import ensemble_forecast
 
 warnings.filterwarnings("ignore")
 
-CONFIDENCE_THRESHOLD = 0.40
+CONFIDENCE_THRESHOLD = 0.43
 
 # Execution slippage buffer — yfinance uses yesterday's close as Buy_Price
 # Workflow runs at 9:30 AM IST, actual buy happens during market hours

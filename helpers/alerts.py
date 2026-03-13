@@ -15,29 +15,32 @@ from email.mime.text import MIMEText
 
 
 def _band_table(results: dict) -> str:
-    """Builds band-wise top picks HTML tables."""
+    """
+    Builds band-wise top picks HTML tables.
+    Two-section layout per band:
+      Section A — core trading info: ticker, company, buy, target, ROI, tax, liquidity
+      Section B — timing info: min hold, best sell, expires, best buy date, predicted price
+    """
     html = ""
     for band_label, df in results.items():
         html += f"""
         <h3 style="color:#0f3460; border-bottom:2px solid #0f3460;
                    padding-bottom:4px; margin-top:28px;">{band_label}</h3>
-        <table style="width:100%; border-collapse:collapse; font-size:12px; margin-bottom:16px;">
+
+        <!-- Section A: Core trading info -->
+        <table style="width:100%; border-collapse:collapse; font-size:11px; margin-bottom:0;">
             <thead>
                 <tr style="background:#0f3460; color:white; text-align:left;">
-                    <th style="padding:7px;">#</th>
-                    <th style="padding:7px;">Ticker</th>
-                    <th style="padding:7px;">Company</th>
-                    <th style="padding:7px;">Buy At</th>
-                    <th style="padding:7px;">Target</th>
-                    <th style="padding:7px;">Gross ROI</th>
-                    <th style="padding:7px;">After-Tax ROI</th>
-                    <th style="padding:7px;">Tax</th>
-                    <th style="padding:7px;">Min Hold Until</th>
-                    <th style="padding:7px;">Best Sell Date</th>
-                    <th style="padding:7px;">Expires</th>
-                    <th style="padding:7px;">Best Buy Date</th>
-                    <th style="padding:7px;">Predicted Buy Price</th>
-                    <th style="padding:7px;">Turnover</th>
+                    <th style="padding:5px 7px;">#</th>
+                    <th style="padding:5px 7px;">Ticker</th>
+                    <th style="padding:5px 7px;">Company</th>
+                    <th style="padding:5px 7px;">Buy At</th>
+                    <th style="padding:5px 7px;">Target</th>
+                    <th style="padding:5px 7px;">Gross ROI</th>
+                    <th style="padding:5px 7px;">After-Tax ROI</th>
+                    <th style="padding:5px 7px;">Tax</th>
+                    <th style="padding:5px 7px;">Turnover</th>
+                    <th style="padding:5px 7px;">Liquidity</th>
                 </tr>
             </thead>
             <tbody>
@@ -45,22 +48,71 @@ def _band_table(results: dict) -> str:
         for i, row in df.iterrows():
             bg = "#f5f5f5" if i % 2 == 0 else "#ffffff"
             tax_color = "#16a34a" if row["Tax_Type"] == "LTCG" else "#d97706"
+            liq_color = "#16a34a" if row.get("Liquidity") == "High" else "#d97706"
             html += f"""
             <tr style="background:{bg};">
-                <td style="padding:7px;">{i + 1}</td>
-                <td style="padding:7px; font-weight:bold;">{row["Stock"]}</td>
-                <td style="padding:7px; color:#555;">{row.get("Company_Name", "")}</td>
-                <td style="padding:7px;">&#8377;{row["Buy_Price"]}</td>
-                <td style="padding:7px;">&#8377;{row["Exit_Target"]}</td>
-                <td style="padding:7px; color:#555;">+{row["Gross_ROI_%"]}%</td>
-                <td style="padding:7px; color:#16a34a; font-weight:bold;">+{row["After_Tax_ROI_%"]}%</td>
-                <td style="padding:7px; color:{tax_color}; font-weight:bold;">{row["Tax_Type"]}</td>
-                <td style="padding:7px;">{row["Min_Hold_Until"]}</td>
-                <td style="padding:7px; font-weight:bold;">{row["Best_Sell_Date"]}</td>
-                <td style="padding:7px; color:#dc2626;">{row["Forecast_Expires"]}</td>
-                <td style="padding:7px; color:#0f3460; font-weight:bold;">{row.get("Predicted_Best_Buy_Date", "N/A")}</td>
-                <td style="padding:7px; color:#0f3460;">&#8377;{row.get("Predicted_Best_Buy_Price", "N/A")}</td>
-                <td style="padding:7px;">&#8377;{row["Avg_Daily_Turnover_Cr"]}Cr</td>
+                <td style="padding:5px 7px; color:#999;">{i + 1}</td>
+                <td style="padding:5px 7px; font-weight:bold; white-space:nowrap;">
+                    {row["Stock"].replace(".NS", "")}
+                </td>
+                <td style="padding:5px 7px; color:#555; font-size:10px;">
+                    {row.get("Company_Name", "")[:24]}
+                </td>
+                <td style="padding:5px 7px; white-space:nowrap;">&#8377;{row["Buy_Price"]}</td>
+                <td style="padding:5px 7px; white-space:nowrap;">&#8377;{row["Exit_Target"]}</td>
+                <td style="padding:5px 7px; color:#555;">+{row["Gross_ROI_%"]}%</td>
+                <td style="padding:5px 7px; color:#16a34a; font-weight:bold;">
+                    +{row["After_Tax_ROI_%"]}%
+                </td>
+                <td style="padding:5px 7px; color:{tax_color}; font-weight:bold;">
+                    {row["Tax_Type"]}
+                </td>
+                <td style="padding:5px 7px; white-space:nowrap;">
+                    &#8377;{row["Avg_Daily_Turnover_Cr"]}Cr
+                </td>
+                <td style="padding:5px 7px; color:{liq_color}; font-weight:bold;">
+                    {row.get("Liquidity", "—")}
+                </td>
+            </tr>
+            """
+        html += "</tbody></table>"
+
+        # Section B: Timing info
+        html += """
+        <table style="width:100%; border-collapse:collapse; font-size:11px;
+                      border-top:2px solid #e5e7eb; margin-bottom:20px;">
+            <thead>
+                <tr style="background:#eef2f7; text-align:left; color:#333;">
+                    <th style="padding:5px 7px;">Ticker</th>
+                    <th style="padding:5px 7px;">Min Hold Until</th>
+                    <th style="padding:5px 7px;">Best Sell Date</th>
+                    <th style="padding:5px 7px;">Forecast Expires</th>
+                    <th style="padding:5px 7px;">&#128197; Best Buy Date</th>
+                    <th style="padding:5px 7px;">&#128176; Predicted Buy Price</th>
+                </tr>
+            </thead>
+            <tbody>
+        """
+        for i, row in df.iterrows():
+            bg = "#ffffff" if i % 2 == 0 else "#f0f4ff"
+            html += f"""
+            <tr style="background:{bg};">
+                <td style="padding:5px 7px; font-weight:bold; white-space:nowrap;">
+                    {row["Stock"].replace(".NS", "")}
+                </td>
+                <td style="padding:5px 7px; white-space:nowrap;">{row["Min_Hold_Until"]}</td>
+                <td style="padding:5px 7px; font-weight:bold; white-space:nowrap;">
+                    {row["Best_Sell_Date"]}
+                </td>
+                <td style="padding:5px 7px; color:#dc2626; white-space:nowrap;">
+                    {row["Forecast_Expires"]}
+                </td>
+                <td style="padding:5px 7px; color:#0f3460; font-weight:bold; white-space:nowrap;">
+                    {row.get("Predicted_Best_Buy_Date", "N/A")}
+                </td>
+                <td style="padding:5px 7px; color:#0f3460; white-space:nowrap;">
+                    &#8377;{row.get("Predicted_Best_Buy_Price", "N/A")}
+                </td>
             </tr>
             """
         html += "</tbody></table>"
@@ -68,7 +120,12 @@ def _band_table(results: dict) -> str:
 
 
 def _portfolio_tables(portfolios: list) -> str:
-    """Builds HTML for all 10 portfolio combinations."""
+    """
+    Builds HTML for all 10 portfolio combinations.
+    Two-section layout per stock to keep table width manageable:
+      Row A — trading info: ticker, company, band, buy, shares, invested, exit, profit, ROI
+      Row B — timing info:  best sell date, expires, best buy date, predicted buy price
+    """
     if not portfolios:
         return "<p style='color:#999;'>No portfolio combinations generated.</p>"
 
@@ -96,35 +153,36 @@ def _portfolio_tables(portfolios: list) -> str:
                     overflow:hidden;">
             <div style="background:{color}; color:white; padding:12px 16px;">
                 <span style="font-size:15px; font-weight:bold;">
-                    #{i + 1} — {combo["name"]}
+                    #{i + 1} &mdash; {combo["name"]}
                 </span><br/>
                 <span style="font-size:12px; opacity:0.85;">{combo["description"]}</span>
             </div>
-            <div style="background:#f9f9f9; padding:10px 16px;">
-                &#128176; <strong>Invested:</strong> &#8377;{s["Total_Invested"]:,} &nbsp;|&nbsp;
-                &#128200; <strong>Net Profit:</strong> &#8377;{s["Total_Net_Profit"]:,} &nbsp;|&nbsp;
-                &#127919; <strong>Portfolio ROI:</strong>
+            <div style="background:#f9f9f9; padding:10px 16px; font-size:13px;">
+                &#128176; <strong>Invested:</strong> &#8377;{s["Total_Invested"]:,.0f}
+                &nbsp;|&nbsp;
+                &#128200; <strong>Net Profit:</strong> &#8377;{s["Total_Net_Profit"]:,.0f}
+                &nbsp;|&nbsp;
+                &#127919; <strong>ROI:</strong>
                     <strong style="color:#16a34a;">{s["Portfolio_ROI_%"]}%</strong>
                 &nbsp;|&nbsp;
-                &#128197; <strong>Sell Window:</strong> {s["Earliest_Sell"]} &rarr; {s["Latest_Sell"]}
+                &#128197; <strong>Sell Window:</strong>
+                    {s["Earliest_Sell"]} &rarr; {s["Latest_Sell"]}
             </div>
-            <table style="width:100%; border-collapse:collapse; font-size:12px;">
+
+            <!-- ── Section A: Trading Info ── -->
+            <table style="width:100%; border-collapse:collapse; font-size:11px;">
                 <thead>
-                    <tr style="background:#eef2f7; text-align:left;">
-                        <th style="padding:7px;">Ticker</th>
-                        <th style="padding:7px;">Company</th>
-                        <th style="padding:7px;">Band</th>
-                        <th style="padding:7px;">Buy At</th>
-                        <th style="padding:7px;">Shares</th>
-                        <th style="padding:7px;">Invested</th>
-                        <th style="padding:7px;">Exit Target</th>
-                        <th style="padding:7px;">Exit Value</th>
-                        <th style="padding:7px;">Net Profit</th>
-                        <th style="padding:7px;">Net ROI %</th>
-                        <th style="padding:7px;">Best Sell Date</th>
-                        <th style="padding:7px;">Expires</th>
-                        <th style="padding:7px;">Best Buy Date</th>
-                        <th style="padding:7px;">Predicted Buy Price</th>
+                    <tr style="background:#eef2f7; text-align:left; color:#333;">
+                        <th style="padding:5px 7px;">Ticker</th>
+                        <th style="padding:5px 7px;">Company</th>
+                        <th style="padding:5px 7px;">Band</th>
+                        <th style="padding:5px 7px;">Buy At</th>
+                        <th style="padding:5px 7px;">Qty</th>
+                        <th style="padding:5px 7px;">Invested</th>
+                        <th style="padding:5px 7px;">Exit Target</th>
+                        <th style="padding:5px 7px;">Exit Value</th>
+                        <th style="padding:5px 7px;">Net Profit</th>
+                        <th style="padding:5px 7px;">Net ROI</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -132,26 +190,79 @@ def _portfolio_tables(portfolios: list) -> str:
         for j, row in pf.iterrows():
             bg = "#ffffff" if j % 2 == 0 else "#f5f5f5"
             html += f"""
-                <tr style="background:{bg};">
-                    <td style="padding:7px; font-weight:bold;">{row["Stock"]}</td>
-                    <td style="padding:7px; color:#555;">{row.get("Company_Name", "")}</td>
-                    <td style="padding:7px; font-size:11px; color:#555;">{row["Band"]}</td>
-                    <td style="padding:7px;">&#8377;{row["Buy_Price"]}</td>
-                    <td style="padding:7px; font-weight:bold;">{int(row["Shares"])}</td>
-                    <td style="padding:7px;">&#8377;{row["Invested"]:,.0f}</td>
-                    <td style="padding:7px;">&#8377;{row["Exit_Target"]}</td>
-                    <td style="padding:7px;">&#8377;{row["Exit_Value"]:,.0f}</td>
-                    <td style="padding:7px; color:#16a34a; font-weight:bold;">
-                        &#8377;{row["Net_Profit"]:,.0f}
-                    </td>
-                    <td style="padding:7px; color:#16a34a; font-weight:bold;">
-                        +{row["Net_ROI_%"]}%
-                    </td>
-                    <td style="padding:7px; font-weight:bold;">{row["Best_Sell_Date"]}</td>
-                    <td style="padding:7px; color:#dc2626;">{row["Forecast_Expires"]}</td>
-                    <td style="padding:7px; color:#0f3460; font-weight:bold;">{row.get("Predicted_Best_Buy_Date", "N/A")}</td>
-                    <td style="padding:7px; color:#0f3460;">&#8377;{row.get("Predicted_Best_Buy_Price", "N/A")}</td>
-                </tr>
+                    <tr style="background:{bg};">
+                        <td style="padding:5px 7px; font-weight:bold; white-space:nowrap;">
+                            {row["Stock"].replace(".NS", "")}
+                        </td>
+                        <td style="padding:5px 7px; color:#555; font-size:10px;">
+                            {row.get("Company_Name", "")[:22]}
+                        </td>
+                        <td style="padding:5px 7px; font-size:10px; color:#777;">
+                            {row["Band"]}
+                        </td>
+                        <td style="padding:5px 7px; white-space:nowrap;">
+                            &#8377;{row["Buy_Price"]}
+                        </td>
+                        <td style="padding:5px 7px; font-weight:bold; text-align:center;">
+                            {int(row["Shares"])}
+                        </td>
+                        <td style="padding:5px 7px; white-space:nowrap;">
+                            &#8377;{row["Invested"]:,.0f}
+                        </td>
+                        <td style="padding:5px 7px; white-space:nowrap;">
+                            &#8377;{row["Exit_Target"]}
+                        </td>
+                        <td style="padding:5px 7px; white-space:nowrap;">
+                            &#8377;{row["Exit_Value"]:,.0f}
+                        </td>
+                        <td style="padding:5px 7px; color:#16a34a; font-weight:bold;
+                                   white-space:nowrap;">
+                            &#8377;{row["Net_Profit"]:,.0f}
+                        </td>
+                        <td style="padding:5px 7px; color:#16a34a; font-weight:bold;
+                                   white-space:nowrap;">
+                            +{row["Net_ROI_%"]}%
+                        </td>
+                    </tr>
+            """
+        html += "</tbody></table>"
+
+        # ── Section B: Timing Info ──
+        html += """
+            <table style="width:100%; border-collapse:collapse; font-size:11px;
+                          border-top:2px solid #e5e7eb;">
+                <thead>
+                    <tr style="background:#fef9ec; text-align:left; color:#333;">
+                        <th style="padding:5px 7px;">Ticker</th>
+                        <th style="padding:5px 7px;">Best Sell Date</th>
+                        <th style="padding:5px 7px;">Forecast Expires</th>
+                        <th style="padding:5px 7px;">&#128197; Best Buy Date</th>
+                        <th style="padding:5px 7px;">&#128176; Predicted Buy Price</th>
+                    </tr>
+                </thead>
+                <tbody>
+        """
+        for j, row in pf.iterrows():
+            bg = "#ffffff" if j % 2 == 0 else "#fffdf0"
+            html += f"""
+                    <tr style="background:{bg};">
+                        <td style="padding:5px 7px; font-weight:bold; white-space:nowrap;">
+                            {row["Stock"].replace(".NS", "")}
+                        </td>
+                        <td style="padding:5px 7px; font-weight:bold; white-space:nowrap;">
+                            {row["Best_Sell_Date"]}
+                        </td>
+                        <td style="padding:5px 7px; color:#dc2626; white-space:nowrap;">
+                            {row["Forecast_Expires"]}
+                        </td>
+                        <td style="padding:5px 7px; color:#0f3460; font-weight:bold;
+                                   white-space:nowrap;">
+                            {row.get("Predicted_Best_Buy_Date", "N/A")}
+                        </td>
+                        <td style="padding:5px 7px; color:#0f3460; white-space:nowrap;">
+                            &#8377;{row.get("Predicted_Best_Buy_Price", "N/A")}
+                        </td>
+                    </tr>
             """
         html += "</tbody></table></div>"
     return html

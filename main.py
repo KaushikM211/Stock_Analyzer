@@ -49,13 +49,13 @@ def is_first_nse_trading_day_of_month(today: date) -> bool:
         return today.day == 1 and today.weekday() < 5
 
 
-def run_analysis(run_label: str = "manual", send_full_email: bool = True):
+def run_analysis(run_label: str = "manual", send_full_email: bool = False):
     """
     Runs the full scan, builds portfolios, saves results.
 
     run_label       — e.g. "Pre-Market 09:00", "Live-1 10:30" etc.
-    send_full_email — if True, sends the full band picks + portfolio email
-                      if False, only checks for improvement and alerts if needed
+    send_full_email — if True  → sends full band picks + portfolio email
+                      if False → saves baseline, checks for improvement alert only
     """
     print("=" * 60)
     print(f"  Nifty 500 — Prescriptive Stock Analyzer [{run_label}]")
@@ -108,16 +108,15 @@ def run_analysis(run_label: str = "manual", send_full_email: bool = True):
         ]
         print(combo["portfolio"][cols].to_string(index=False))
 
-    # ── Save results for intraday comparison ──
+    # ── Always save results for intraday comparison ──
     results_dir = os.getenv("SCAN_RESULTS_DIR", "/tmp/scan_results")
     save_run_results(results, portfolios, run_label, results_dir)
 
-    # ── Send full email (Run 1 / monthly runs) ──
     if send_full_email:
+        # Monthly deployment day — send full report
         send_email_alert(results, portfolios=portfolios)
-
-    # ── Check for improvement vs previous runs today (Run 2, 3, 4) ──
     else:
+        # Every other run — only alert if improved vs previous runs today
         check_and_alert(results, portfolios, run_label, results_dir)
 
 
@@ -155,35 +154,52 @@ def main():
         send_email_alert(dummy_results, portfolios=dummy_portfolios, debug=True)
         return
 
-    # ── Force full run ──
+    # ── Force full run (local testing only — always sends full email) ──
     if "--force" in args:
-        print(f"[{today}] Force run — bypassing date guard.")
+        print(f"[{today}] Force run — bypassing all guards, sending full email.")
         run_analysis(run_label="Force Run", send_full_email=True)
         return
 
-    # ── Intraday improvement run (Run 2, 3, 4) ──
-    # Passed as: python main.py --intraday "Live-1 10:30"
+    # ── Intraday runs (Run 2, 3, 4) — alert only if improved ──
     if "--intraday" in args:
         idx = args.index("--intraday")
         label = args[idx + 1] if idx + 1 < len(args) else "Intraday"
         if not is_nse_trading_day(today):
-            print(f"[{today}] Not an NSE trading day — skipping intraday run.")
+            print(f"[{today}] Not an NSE trading day — skipping.")
             sys.exit(0)
         print(f"[{today}] Intraday run — {label}")
         run_analysis(run_label=label, send_full_email=False)
         return
 
-    # ── Default: first NSE trading day of month (full email) ──
+    # ── Daily Run 1 (9:00 AM) — baseline save every trading day ──
+    # Sends full email ONLY on first NSE trading day of month
+    # All other days: saves baseline silently for intraday comparison
+    if "--daily" in args:
+        if not is_nse_trading_day(today):
+            print(f"[{today}] Not an NSE trading day — skipping.")
+            sys.exit(0)
+        if is_first_nse_trading_day_of_month(today):
+            print(
+                f"[{today}] First NSE trading day of month — running full analysis + email."
+            )
+            run_analysis(run_label="Monthly Run 09:00", send_full_email=True)
+        else:
+            print(f"[{today}] Daily baseline run — saving results, no email.")
+            run_analysis(run_label="Daily Baseline 09:00", send_full_email=False)
+        return
+
+    # ── Default (no flag): same as --daily ──
     if not is_nse_trading_day(today):
         print(f"[{today}] Not an NSE trading day — skipping.")
         sys.exit(0)
-
-    if not is_first_nse_trading_day_of_month(today):
-        print(f"[{today}] Not the first NSE trading day of the month — skipping.")
-        sys.exit(0)
-
-    print(f"[{today}] First NSE trading day of the month — running full analysis.")
-    run_analysis(run_label="Monthly Run", send_full_email=True)
+    if is_first_nse_trading_day_of_month(today):
+        print(
+            f"[{today}] First NSE trading day of month — running full analysis + email."
+        )
+        run_analysis(run_label="Monthly Run 09:00", send_full_email=True)
+    else:
+        print(f"[{today}] Daily baseline run — saving results, no email.")
+        run_analysis(run_label="Daily Baseline 09:00", send_full_email=False)
 
 
 if __name__ == "__main__":

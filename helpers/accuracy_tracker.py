@@ -15,7 +15,7 @@ import json
 import glob
 import subprocess
 from datetime import date, timedelta
-from .alerts import send_accuracy_email
+
 import pandas as pd
 import yfinance as yf
 
@@ -152,14 +152,12 @@ def check_predictions(target_date: date | None = None) -> pd.DataFrame:
     Checks all past scans for stocks where Predicted_Best_Buy_Date == target_date.
     Fetches actual prices and logs accuracy.
 
-    target_date defaults to yesterday (the most recently completed trading day).
+    target_date defaults to today — runs after each scan to check live prices.
     """
+    from helpers.alerts import send_accuracy_email
 
     if target_date is None:
-        target_date = date.today() - timedelta(days=1)
-        # If yesterday was weekend, go back to Friday
-        while target_date.weekday() >= 5:
-            target_date -= timedelta(days=1)
+        target_date = date.today()
 
     target_str = target_date.strftime("%d %b %Y")
     print(f"\n  📊 Accuracy check for predicted buy date: {target_str}")

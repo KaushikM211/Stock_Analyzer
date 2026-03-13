@@ -123,6 +123,8 @@ def _portfolio_tables(portfolios: list) -> str:
                         <th style="padding:7px;">Net ROI %</th>
                         <th style="padding:7px;">Best Sell Date</th>
                         <th style="padding:7px;">Expires</th>
+                        <th style="padding:7px;">Best Buy Date</th>
+                        <th style="padding:7px;">Predicted Buy Price</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -147,6 +149,8 @@ def _portfolio_tables(portfolios: list) -> str:
                     </td>
                     <td style="padding:7px; font-weight:bold;">{row["Best_Sell_Date"]}</td>
                     <td style="padding:7px; color:#dc2626;">{row["Forecast_Expires"]}</td>
+                    <td style="padding:7px; color:#0f3460; font-weight:bold;">{row.get("Predicted_Best_Buy_Date", "N/A")}</td>
+                    <td style="padding:7px; color:#0f3460;">&#8377;{row.get("Predicted_Best_Buy_Price", "N/A")}</td>
                 </tr>
             """
         html += "</tbody></table></div>"

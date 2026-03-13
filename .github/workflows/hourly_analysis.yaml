@@ -25,7 +25,7 @@ on:
         required: false
         default: "force"
       run_label:
-        description: "Label e.g. 'Live-1 10:30'"
+        description: "Label e.g. 'Live 10:30 IST'"
         required: false
         default: "Manual Run"
 
@@ -129,3 +129,18 @@ jobs:
           else
             uv run python main.py --intraday "$RUN_LABEL"
           fi
+
+      - name: Run accuracy check
+        # Always runs after scan — checks if any stock has Predicted_Best_Buy_Date == today
+        # Uses live prices already fetched by the scan above
+        # Sends email only if predictions are due today
+        if: always()
+        env:
+          GMAIL_SENDER:      ${{ secrets.GMAIL_SENDER }}
+          GMAIL_PASSWORD:    ${{ secrets.GMAIL_PASSWORD }}
+          GMAIL_RECIPIENT:   ${{ secrets.GMAIL_RECIPIENT }}
+          GITHUB_TOKEN:      ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_WORKSPACE:  ${{ github.workspace }}
+          SCAN_RESULTS_DIR:  /tmp/scan_results
+        run: uv run python main.py --accuracy

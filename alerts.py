@@ -184,7 +184,7 @@ def _build_portfolio_html(portfolios: list) -> str:
     <html><body style="font-family:Arial,sans-serif; max-width:1000px;
                         margin:auto; color:#1a1a1a;">
     <h2 style="color:#1a1a2e; margin-bottom:4px;">
-        💼 Nifty 500 — ₹50,000 Portfolio Combinations
+        💼 Nifty 500 — ₹1,00,000 Portfolio Combinations
     </h2>
     <p style="color:#555; margin-top:0;">
         📅 {today} &nbsp;|&nbsp;

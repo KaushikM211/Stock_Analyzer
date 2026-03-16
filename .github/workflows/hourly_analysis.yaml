@@ -118,62 +118,9 @@ jobs:
           else
             uv run python main.py --intraday "$RUN_LABEL"
           fi
-          # main.py calls is_nse_trading_day() — exits cleanly if market closed
 
       - name: Run accuracy check
-        if: always()
-        env:
-          GMAIL_SENDER:      ${{ secrets.GMAIL_SENDER }}
-          GMAIL_PASSWORD:    ${{ secrets.GMAIL_PASSWORD }}
-          GMAIL_RECIPIENT:   ${{ secrets.GMAIL_RECIPIENT }}
-          GITHUB_TOKEN:      ${{ secrets.GITHUB_TOKEN }}
-          GITHUB_REPOSITORY: ${{ github.repository }}
-          GITHUB_WORKSPACE:  ${{ github.workspace }}
-          SCAN_RESULTS_DIR:  /tmp/scan_results
-        run: uv run python main.py --accuracy      - name: Cache CmdStan
-        uses: actions/cache@v4
-        with:
-          path: ~/.cmdstan
-          key: cmdstan-${{ runner.os }}-v1
-
-      - name: Install CmdStan
-        run: |
-          uv run python -c "
-          import os, cmdstanpy
-          path = os.path.expanduser('~/.cmdstan')
-          if not os.path.exists(path) or not os.listdir(path):
-              print('Installing CmdStan...')
-              cmdstanpy.install_cmdstan()
-          else:
-              print('CmdStan already cached — skipping install')
-          "
-
-      - name: Run stock analyzer
-        env:
-          GMAIL_SENDER:      ${{ secrets.GMAIL_SENDER }}
-          GMAIL_PASSWORD:    ${{ secrets.GMAIL_PASSWORD }}
-          GMAIL_RECIPIENT:   ${{ secrets.GMAIL_RECIPIENT }}
-          GITHUB_TOKEN:      ${{ secrets.GITHUB_TOKEN }}
-          GITHUB_REPOSITORY: ${{ github.repository }}
-          GITHUB_WORKSPACE:  ${{ github.workspace }}
-          SCAN_RESULTS_DIR:  /tmp/scan_results
-        run: |
-          RUN_TYPE="${{ needs.setup.outputs.run_type }}"
-          RUN_LABEL="${{ needs.setup.outputs.run_label }}"
-
-          if [ "$RUN_TYPE" = "force" ]; then
-            uv run python main.py --force
-          elif [ "$RUN_TYPE" = "daily" ]; then
-            uv run python main.py --daily
-          else
-            uv run python main.py --intraday "$RUN_LABEL"
-          fi
-
-      - name: Run accuracy check
-        # Always runs after scan — checks if any stock has Predicted_Best_Buy_Date == today
-        # Uses live prices already fetched by the scan above
-        # Sends email only if predictions are due today
-        if: always()
+        if: ${{ always() }}
         env:
           GMAIL_SENDER:      ${{ secrets.GMAIL_SENDER }}
           GMAIL_PASSWORD:    ${{ secrets.GMAIL_PASSWORD }}

@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "Ensemble stock prediction for NSE with email alerts"
 requires-python = ">=3.12"
 dependencies = [
-    "niftystocks",
+    "nsepython",
     "yfinance>=0.2.0",
     "prophet>=1.1.0",
     "cmdstanpy>=1.2.0",

@@ -20,13 +20,11 @@
 #   High risk   51 – 100 clear red flags (overvalued, over-leveraged, declining)
 # ─────────────────────────────────────────────
 
-import io
 import logging
-import requests
 import pandas as pd
 import yfinance as yf
 from yfinance import download
-from niftystocks import ns
+from nsepython import nsefetch
 
 from .config import (
     FETCH_PERIODS,
@@ -148,71 +146,34 @@ TICKER_ALIASES = {
 # ─────────────────────────────────────────────
 
 
-def _fetch_nse_live() -> list[str]:
-    session = requests.Session()
-    session.headers.update(_NSE_HEADERS)
-    session.get("https://www.nseindia.com", timeout=10)
-    csv_url = "https://www.nseindia.com/content/indices/ind_nifty500list.csv"
-    response = session.get(csv_url, timeout=15)
-    response.raise_for_status()
-    df = pd.read_csv(io.StringIO(response.text))
-    symbols = df["Symbol"].dropna().str.strip().tolist()
-    tickers = [f"{s}.NS" for s in symbols if s]
-    if len(tickers) < 400:
-        raise ValueError(f"Only {len(tickers)} tickers fetched — likely a parse error")
-    print(f"  ✓ Fetched {len(tickers)} tickers live from NSE")
-    return tickers
-
-
-def _apply_aliases(tickers: list[str]) -> list[str]:
-    result = []
-    seen = set()
-    for t in tickers:
-        resolved = TICKER_ALIASES.get(t, t)
-        if resolved not in seen:
-            result.append(resolved)
-            seen.add(resolved)
-    return result
-
-
-def get_nifty500_tickers() -> list[str]:
+def get_nifty500_tickers():
+    """
+    Fetches the Nifty 500 stock list via NSE API and
+    formats them for yfinance (adding .NS suffix).
+    """
     try:
-        tickers = _fetch_nse_live()
-        return _apply_aliases(tickers)
-    except Exception as e:
-        print(f"  ⚠ NSE live fetch failed ({e}) — trying niftystocks...")
+        # URL for Nifty 500 index constituents via NSE API
+        url = "https://www.nseindia.com/api/equity-stockIndices?index=NIFTY%20500"
 
-    try:
-        tickers = ns.get_nifty500_with_ns()
-        print(f"  ✓ Using niftystocks list ({len(tickers)} tickers)")
-        return _apply_aliases(tickers)
-    except Exception as e:
-        print(f"  ⚠ niftystocks failed ({e}) — using hardcoded fallback")
+        # Use nsefetch from the library to handle headers and cookies
+        payload = nsefetch(url)
 
-    fallback = [
-        "RELIANCE.NS",
-        "TCS.NS",
-        "HDFCBANK.NS",
-        "INFY.NS",
-        "ICICIBANK.NS",
-        "HINDUNILVR.NS",
-        "ITC.NS",
-        "SBIN.NS",
-        "BHARTIARTL.NS",
-        "KOTAKBANK.NS",
-        "LT.NS",
-        "AXISBANK.NS",
-        "ASIANPAINT.NS",
-        "MARUTI.NS",
-        "TITAN.NS",
-        "SUNPHARMA.NS",
-        "ULTRACEMCO.NS",
-        "BAJFINANCE.NS",
-        "WIPRO.NS",
-        "NESTLEIND.NS",
-    ]
-    print(f"  ⚠ Using hardcoded fallback ({len(fallback)} tickers)")
-    return fallback
+        if "data" not in payload:
+            print("Error: Could not find 'data' key in NSE response.")
+            return []
+
+        # Extract symbols and add .NS for yfinance compatibility
+        # We skip the first element if it's the index itself (NIFTY 500)
+        yf_tickers = [
+            f"{stock['symbol']}.NS"
+            for stock in payload["data"]
+            if stock["symbol"] != "NIFTY 500"
+        ]
+
+        return yf_tickers
+    except Exception as e:
+        print(f"Error fetching Nifty 500 tickers: {e}")
+        return []
 
 
 # ─────────────────────────────────────────────

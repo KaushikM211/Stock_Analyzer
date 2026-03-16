@@ -369,7 +369,7 @@ version = "0.1.0"
 source = { editable = "." }
 dependencies = [
     { name = "cmdstanpy" },
-    { name = "niftystocks" },
+    { name = "nsepython" },
     { name = "numpy" },
     { name = "pandas" },
     { name = "pandas-market-calendars" },
@@ -386,7 +386,7 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "cmdstanpy", specifier = ">=1.2.0" },
-    { name = "niftystocks" },
+    { name = "nsepython" },
     { name = "numpy", specifier = ">=1.26.0" },
     { name = "pandas", specifier = ">=2.1.0" },
     { name = "pandas-market-calendars", specifier = ">=4.4.0" },
@@ -551,12 +551,17 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/17/0d/74f0293dfd7dcc3837746d0138cbedd60b31701ecc75caec7d3f281feba0/multitasking-0.0.12.tar.gz", hash = "sha256:2fba2fa8ed8c4b85e227c5dd7dc41c7d658de3b6f247927316175a57349b84d1", size = 19984, upload-time = "2025-07-20T21:27:51.636Z" }
 
 [[package]]
-name = "niftystocks"
-version = "0.1.2"
+name = "nsepython"
+version = "2.97"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/4e/c8/150755669662b0267040bb2ffdc49b01bac1e60e0e6518087f97b87b42cf/niftystocks-0.1.2.tar.gz", hash = "sha256:74b1c9a29afbaf8e8b41619c965a0ae1d5f0c23e5eb95477d2603bd6f388324a", size = 15361, upload-time = "2022-01-11T10:27:05.041Z" }
+dependencies = [
+    { name = "pandas" },
+    { name = "requests" },
+    { name = "scipy" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/be/bb/159deb25e57925ced46ae1268b61342a8091bc8cc8f3ed8d50610d109d2d/nsepython-2.97.tar.gz", hash = "sha256:24e7035739ff46e96ccead343aade1ce16afda152cd2d2cfa1fa9f33ff84578a", size = 27735, upload-time = "2025-05-26T15:15:29.248Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/e9/ab/edcf54b7a53bb4dedb4ae63d51643cbffd26e154d973613a1d05e60f1fc8/niftystocks-0.1.2-py3-none-any.whl", hash = "sha256:5e6f82d6598c934257f630a2410d76b2d7bcc289a0cc77ef7e48240b02889be9", size = 15665, upload-time = "2022-01-11T10:27:03.092Z" },
+    { url = "https://files.pythonhosted.org/packages/92/ff/47ba4009597f282e1fe251419f262340fac421a84d17775302a13ef7fbaf/nsepython-2.97-py3-none-any.whl", hash = "sha256:2873d2d0319ff72033754effcefc23a9ce860bf45083420769208597907dc3c6", size = 25478, upload-time = "2025-05-26T15:15:27.667Z" },
 ]
 
 [[package]]

@@ -2,8 +2,9 @@ name: NSE Stock Analysis
 
 on:
   schedule:
-    # ── Every 30 mins during market hours, Mon–Fri ──
-    # Market hours: 9:00 AM – 3:30 PM IST = 3:30 AM – 10:00 AM UTC
+    # Runs every 30 mins, Mon–Fri, 9:00 AM – 3:30 PM IST
+    # = 3:30 AM – 10:00 AM UTC
+    # main.py checks if NSE is open — exits cleanly if holiday/closed
     - cron: "30 3 * * 1-5"
     - cron: "0 4 * * 1-5"
     - cron: "30 4 * * 1-5"
@@ -30,47 +31,7 @@ on:
         default: "Manual Run"
 
 jobs:
-  setup:
-    runs-on: ubuntu-latest
-    outputs:
-      run_type:  ${{ steps.detect.outputs.run_type }}
-      run_label: ${{ steps.detect.outputs.run_label }}
-    steps:
-      - name: Detect run type from cron time
-        id: detect
-        run: |
-          # Manual dispatch — use inputs directly
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "run_type=${{ github.event.inputs.run_type }}" >> $GITHUB_OUTPUT
-            echo "run_label=${{ github.event.inputs.run_label }}" >> $GITHUB_OUTPUT
-            exit 0
-          fi
-
-          # Use total minutes from midnight UTC — avoids all octal issues
-          HOUR=$(date -u +%-H)
-          MIN=$(date -u +%-M)
-          UTC_TOTAL=$(( HOUR * 60 + MIN ))
-
-          # 9:00 AM IST = 3:30 AM UTC = 210 mins from midnight UTC
-          if [ "$UTC_TOTAL" -le "210" ]; then
-            echo "run_type=daily" >> $GITHUB_OUTPUT
-            echo "run_label=Pre-Market 09:00 IST" >> $GITHUB_OUTPUT
-          else
-            # Build IST label without printf (avoids octal)
-            IST_TOTAL=$(( UTC_TOTAL + 330 ))
-            IST_H=$(( IST_TOTAL / 60 % 24 ))
-            IST_M=$(( IST_TOTAL % 60 ))
-            if [ "$IST_M" -lt 10 ]; then
-              IST_LABEL="${IST_H}:0${IST_M} IST"
-            else
-              IST_LABEL="${IST_H}:${IST_M} IST"
-            fi
-            echo "run_type=intraday" >> $GITHUB_OUTPUT
-            echo "run_label=Live ${IST_LABEL}" >> $GITHUB_OUTPUT
-          fi
-
   analyze:
-    needs: setup
     runs-on: ubuntu-latest
     timeout-minutes: 120
     permissions:
@@ -92,6 +53,84 @@ jobs:
         run: uv sync
 
       - name: Cache CmdStan
+        uses: actions/cache@v4
+        with:
+          path: ~/.cmdstan
+          key: cmdstan-${{ runner.os }}-v1
+
+      - name: Install CmdStan
+        run: |
+          uv run python -c "
+          import os, cmdstanpy
+          path = os.path.expanduser('~/.cmdstan')
+          if not os.path.exists(path) or not os.listdir(path):
+              print('Installing CmdStan...')
+              cmdstanpy.install_cmdstan()
+          else:
+              print('CmdStan already cached — skipping install')
+          "
+
+      - name: Detect run type and label
+        id: detect
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "run_type=${{ github.event.inputs.run_type }}" >> $GITHUB_OUTPUT
+            echo "run_label=${{ github.event.inputs.run_label }}" >> $GITHUB_OUTPUT
+          else
+            HOUR=$(date -u +%-H)
+            MIN=$(date -u +%-M)
+            UTC_TOTAL=$(( HOUR * 60 + MIN ))
+            IST_TOTAL=$(( UTC_TOTAL + 330 ))
+            IST_H=$(( IST_TOTAL / 60 % 24 ))
+            IST_M=$(( IST_TOTAL % 60 ))
+            if [ "$IST_M" -lt 10 ]; then
+              IST_LABEL="${IST_H}:0${IST_M} IST"
+            else
+              IST_LABEL="${IST_H}:${IST_M} IST"
+            fi
+            # 9:00 AM IST = UTC 210 mins → first run of day
+            if [ "$UTC_TOTAL" -le "210" ]; then
+              echo "run_type=daily"             >> $GITHUB_OUTPUT
+              echo "run_label=Daily ${IST_LABEL}" >> $GITHUB_OUTPUT
+            else
+              echo "run_type=intraday"            >> $GITHUB_OUTPUT
+              echo "run_label=Live ${IST_LABEL}"  >> $GITHUB_OUTPUT
+            fi
+          fi
+
+      - name: Run stock analyzer
+        env:
+          GMAIL_SENDER:      ${{ secrets.GMAIL_SENDER }}
+          GMAIL_PASSWORD:    ${{ secrets.GMAIL_PASSWORD }}
+          GMAIL_RECIPIENT:   ${{ secrets.GMAIL_RECIPIENT }}
+          GITHUB_TOKEN:      ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_WORKSPACE:  ${{ github.workspace }}
+          SCAN_RESULTS_DIR:  /tmp/scan_results
+        run: |
+          RUN_TYPE="${{ steps.detect.outputs.run_type }}"
+          RUN_LABEL="${{ steps.detect.outputs.run_label }}"
+
+          if [ "$RUN_TYPE" = "force" ]; then
+            uv run python main.py --force
+          elif [ "$RUN_TYPE" = "daily" ]; then
+            uv run python main.py --daily
+          else
+            uv run python main.py --intraday "$RUN_LABEL"
+          fi
+          # main.py calls is_nse_trading_day() — exits cleanly if market closed
+
+      - name: Run accuracy check
+        if: always()
+        env:
+          GMAIL_SENDER:      ${{ secrets.GMAIL_SENDER }}
+          GMAIL_PASSWORD:    ${{ secrets.GMAIL_PASSWORD }}
+          GMAIL_RECIPIENT:   ${{ secrets.GMAIL_RECIPIENT }}
+          GITHUB_TOKEN:      ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_WORKSPACE:  ${{ github.workspace }}
+          SCAN_RESULTS_DIR:  /tmp/scan_results
+        run: uv run python main.py --accuracy      - name: Cache CmdStan
         uses: actions/cache@v4
         with:
           path: ~/.cmdstan

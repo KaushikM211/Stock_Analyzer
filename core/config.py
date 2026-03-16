@@ -7,12 +7,12 @@ LOWER_LIMIT = 100
 UPPER_LIMIT = 15000
 
 # Max stocks from same sector per price band (Email 1)
-# Prevents one sector dominating a single band
-MAX_SECTOR_PER_BAND = 2
+# Raised from 2 to 3 — with 10 picks per band, allowing 3 per sector
+# still gives good diversity (max 30% from one sector) while not over-constraining
+MAX_SECTOR_PER_BAND = 3
 
 # Max stocks from same sector per portfolio combination (Email 2)
-# Enforces diversification across all 10 combinations
-MAX_SECTOR_PER_PORTFOLIO = 2
+MAX_SECTOR_PER_PORTFOLIO = 3
 
 # Price band buckets — ₹500 windows within lower/upper limits
 # Each bucket gets its own top-N picks in the final output
@@ -32,8 +32,10 @@ PRICE_BANDS = [
     (7000, 15000),
 ]
 
-# Top N picks per price band
-TOP_N_PER_BAND = 7
+# Top N picks per price band shown in email
+# Raised from 7 to 10 — 7 was discarding valid stocks from results entirely,
+# meaning accuracy tracker and portfolio builder had a smaller pool than necessary
+TOP_N_PER_BAND = 10
 
 # Minimum trading days required to run any model
 MIN_DAYS = 60
@@ -76,25 +78,50 @@ CESS_RATE = 0.04  # 4% Health & Education Cess on tax
 STT_RATE = 0.001  # 0.1% Securities Transaction Tax (buy + sell)
 LTCG_HOLD_DAYS = 252  # Trading days to cross 12-month LTCG threshold
 
-# ROI thresholds — now applied to AFTER-TAX ROI
-MIN_WEIGHTED_ROI = 6.5  # Minimum after-tax ROI to qualify
-
 # Minimum average daily turnover
-MIN_AVG_DAILY_TURNOVER = 1e7  # ₹1 Crore/day
+# Raised from ₹1Cr to ₹2Cr — ₹1Cr is too thin for reliable LTCG exit
+# on a ₹1L position. ₹2Cr/day ensures you can exit without moving the price.
+MIN_AVG_DAILY_TURNOVER = 2e7  # ₹2 Crore/day
 
 # Ensemble model weights — must sum to 1.0
+# XGBoost weight reduced from 0.225 to 0.18 — XGB is only reliable for 63 days
+# then blends into Holt anyway. Overweighting it on a 24-month forecast
+# was giving near-term noise too much influence on the final ROI number.
+# Redistributed to Prophet (+0.025) and VPR (+0.02) which are more honest
+# about long-horizon uncertainty.
 MODEL_WEIGHTS = {
-    "prophet": 0.345,
-    "xgb": 0.225,
+    "prophet": 0.370,
+    "xgb": 0.180,
     "holt": 0.275,
-    "vpr": 0.155,
+    "vpr": 0.175,
 }
+
 # Per-model annualised return caps
-MAX_ANNUAL_RETURN = 0.35
+# Brought back from 0.50 to 0.42 — 0.50 over 24 months = 125% total cap,
+# which is too permissive for mid/large caps. 0.42 (42%/yr) is exceptional
+# but achievable for genuine small-cap outperformers, while keeping
+# mid/large cap forecasts grounded.
+MAX_ANNUAL_RETURN = 0.42
 MIN_ANNUAL_RETURN = -0.175
 
 # Momentum pre-filter tolerance
-MOMENTUM_TOLERANCE = 0.97
+MOMENTUM_TOLERANCE = 0.90
+
+# Minimum after-tax ROI to qualify
+# Raised from 6.5% to 10% — 6.5% barely beats FD rates and adds noise.
+# With 2% slippage already baked in, 10% after-tax is a meaningful hurdle.
+MIN_WEIGHTED_ROI = 10.0
+
+# ─────────────────────────────────────────────
+# FUNDAMENTAL RISK SCORE THRESHOLDS
+# score_fundamental_risk() produces a multiplicative 1–100 score.
+#   score ≤ LOW   → "Low"    clean stocks naturally score 5–28
+#   score ≤ HIGH  → "Medium" borderline or data gaps
+#   score >  HIGH → "High"   PE/D/E/revenue red flags
+# ─────────────────────────────────────────────
+RISK_THRESHOLD_LOW = 33
+RISK_THRESHOLD_HIGH = 60
+
 
 # ─────────────────────────────────────────────
 # MACRO SEASONALITY CALENDAR (India-specific)

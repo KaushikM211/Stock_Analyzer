@@ -103,29 +103,6 @@ python main.py
 - Console display of top stock picks grouped by price band
 - WhatsApp alert with summary and recommendations
 
-### GitHub Actions Integration
-Add workflow file `.github/workflows/stock-analysis.yml` to automate daily/weekly runs:
-```yaml
-name: Stock Analysis
-on:
-  schedule:
-    - cron: '0 15 * * 1-5'  # 3:30 PM IST on weekdays
-jobs:
-  analyze:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
-        with:
-          python-version: '3.10'
-      - run: uv pip install -e .
-      - run: python main.py
-        env:
-          TWILIO_ACCOUNT_SID: ${{ secrets.TWILIO_ACCOUNT_SID }}
-          TWILIO_AUTH_TOKEN: ${{ secrets.TWILIO_AUTH_TOKEN }}
-          TWILIO_WHATSAPP_NUMBER: ${{ secrets.TWILIO_WHATSAPP_NUMBER }}
-          RECIPIENT_WHATSAPP_NUMBER: ${{ secrets.RECIPIENT_WHATSAPP_NUMBER }}
-```
 
 ## Dependencies
 
@@ -155,7 +132,7 @@ jobs:
 - Gradient boosting for feature interactions and momentum
 - Weight: 35% (directional signal)
 
-### Ridge Regression
+### VPR Model and Holt Model
 - Linear model with L2 regularization for stability
 - Weight: 25% (conservative anchor)
 

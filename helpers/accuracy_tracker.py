@@ -188,55 +188,73 @@ def _pull_scan_history() -> list[dict]:
 # ─────────────────────────────────────────────
 
 
-def log_predictions(
-    results: dict,
-    run_label: str,
-) -> None:
+def log_predictions(results: dict, run_label: str) -> None:
     """
-    Called after every 30-min scan run.
     Logs each stock's Predicted_Best_Buy_Date + Price to prediction_log.csv.
-    This builds the full run history for convergence analysis.
-    """
-    import pandas as pd
 
+    Uses results["_full_pool"] when available — the complete set of stocks
+    that passed ROI threshold BEFORE per-band top-N cap. This means we
+    log all ~100-200 passing stocks, not just the ~45-70 in the email.
+
+    Falls back to iterating band keys if _full_pool absent (backwards compat).
+    """
     today = date.today().isoformat()
     run_time = __import__("datetime").datetime.now().strftime("%H:%M")
 
     pred_log = _load_csv(PREDICTION_LOG, PRED_COLUMNS)
     new_rows = []
 
-    for band, stocks in results.items():
-        if isinstance(stocks, pd.DataFrame):
-            stock_list = stocks.to_dict(orient="records")
-        else:
-            stock_list = stocks
-
-        for stock in stock_list:
-            pred_date = stock.get("Predicted_Best_Buy_Date", "")
-            pred_price = stock.get("Predicted_Best_Buy_Price", "")
-            ticker = stock.get("Stock", "")
-            company = stock.get("Company_Name", "")
-
-            if not ticker or not pred_date or pred_date == "N/A":
+    # ── Build stock_list from full pool or band keys ──
+    if "_full_pool" in results:
+        full = results["_full_pool"]
+        stock_list = (
+            full.to_dict(orient="records")
+            if isinstance(full, pd.DataFrame)
+            else list(full)
+        )
+        source = f"full pool ({len(stock_list)} stocks)"
+    else:
+        stock_list = []
+        for band, stocks in results.items():
+            if band.startswith("_"):
                 continue
-
-            new_rows.append(
-                {
-                    "Scan_Date": today,
-                    "Run_Time": run_time,
-                    "Run_Label": run_label,
-                    "Stock": ticker,
-                    "Company_Name": company,
-                    "Predicted_Buy_Date": pred_date,
-                    "Predicted_Buy_Price": pred_price,
-                }
+            rows = (
+                stocks.to_dict(orient="records")
+                if isinstance(stocks, pd.DataFrame)
+                else list(stocks)
             )
+            stock_list.extend(rows)
+        source = f"band keys ({len(stock_list)} stocks)"
+
+    # ── Build log rows ──
+    for stock in stock_list:
+        pred_date = stock.get("Predicted_Best_Buy_Date", "")
+        pred_price = stock.get("Predicted_Best_Buy_Price", "")
+        ticker = stock.get("Stock", "")
+        company = stock.get("Company_Name", "")
+        if not ticker or not pred_date or pred_date == "N/A":
+            continue
+        new_rows.append(
+            {
+                "Scan_Date": today,
+                "Run_Time": run_time,
+                "Run_Label": run_label,
+                "Stock": ticker,
+                "Company_Name": company,
+                "Predicted_Buy_Date": pred_date,
+                "Predicted_Buy_Price": pred_price,
+            }
+        )
 
     if new_rows:
         new_df = pd.DataFrame(new_rows)
         pred_log = pd.concat([pred_log, new_df], ignore_index=True)
         _save_csv(pred_log, PREDICTION_LOG, "Prediction log")
-        print(f"  📝 Logged {len(new_rows)} predictions from {run_label}")
+        print(
+            f"  📝 Logged {len(new_rows)} predictions from {run_label} (source: {source})"
+        )
+    else:
+        print(f"  ℹ No predictions to log from {run_label}")
 
 
 # ─────────────────────────────────────────────

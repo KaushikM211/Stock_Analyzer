@@ -8,11 +8,16 @@ from statsmodels.tsa.holtwinters import ExponentialSmoothing
 
 from core.config import MAX_ANNUAL_RETURN, MIN_ANNUAL_RETURN
 
-# Damping factor — controls how quickly the trend fades over time
-# 0.80 = moderate damping (good for 8–12 month horizon)
-# 1.00 = no damping (same as regular Holt's — too aggressive)
-# 0.70 = strong damping (too conservative)
-DAMPING_FACTOR = 0.91
+# Damping factor — controls how quickly the trend fades over time.
+# On a 24-month horizon (504 trading days), trend contribution = φ^504
+#   φ=0.91 → 0.91^504 ≈ 0% — fully dampened by month 24 ✓
+#   φ=0.88 → dampens slightly faster — better for volatile NSE stocks
+#             where trends are less persistent than developed markets
+#   φ=0.80 → too conservative — trend vanishes in ~6 months
+#   φ=1.00 → no damping (Holt's without damping — too aggressive)
+# 0.88 chosen: dampens within 18 months, giving Holt a realistic
+# long-term anchor without trend extrapolation running too far.
+DAMPING_FACTOR = 0.88
 
 
 def holt_forecast(

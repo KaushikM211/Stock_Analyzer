@@ -1,5 +1,10 @@
 # ─────────────────────────────────────────────
 # alerts.py — Email notification via Gmail SMTP
+#
+# v2 CHANGE: Risk label (Low / Medium / High) shown in all three emails:
+#   Email 1 (band picks)   — Risk column in Section A, Risk_Reasons in tooltip
+#   Email 2 (portfolios)   — Risk badge on every stock row + breakdown in header bar
+#   Email 3 (alert)        — Risk badge on dipped stocks + combo rows
 # ─────────────────────────────────────────────
 
 import os
@@ -10,24 +15,66 @@ from email.mime.text import MIMEText
 
 
 # ─────────────────────────────────────────────
-# Helpers — HTML builders
+# Shared risk badge helper
+# ─────────────────────────────────────────────
+
+
+def _risk_badge(risk_label: str, score: float = None) -> str:
+    """
+    Inline HTML badge. Score is always 1–100 (int) with multiplicative model.
+    Shows score in parentheses when provided — gives users a sense of margin.
+    """
+    styles = {
+        "Low": "background:#dcfce7; color:#166534; border:1px solid #86efac;",
+        "Medium": "background:#fef9c3; color:#854d0e; border:1px solid #fde047;",
+        "High": "background:#fee2e2; color:#991b1b; border:1px solid #fca5a5;",
+    }
+    label = risk_label or "Unknown"
+    style = styles.get(
+        label, "background:#f3f4f6; color:#374151; border:1px solid #d1d5db;"
+    )
+    score_str = f" ({int(score)})" if score is not None else ""
+    return (
+        f'<span style="display:inline-block; padding:2px 7px; border-radius:10px; '
+        f'font-size:10px; font-weight:bold; white-space:nowrap; {style}">'
+        f"{label}{score_str}</span>"
+    )
+
+
+def _risk_legend() -> str:
+    """One-line legend shown at the bottom of every email."""
+    return (
+        '<p style="color:#6b7280; font-size:11px; margin-top:0;">'
+        "<strong>Risk labels</strong> (fundamental score 0–100, lower = safer): &nbsp;"
+        + _risk_badge("Low")
+        + " all metrics clean &nbsp;|&nbsp; "
+        + _risk_badge("Medium")
+        + " borderline or data gaps &nbsp;|&nbsp; "
+        + _risk_badge("High")
+        + " PE/D/E/revenue red flag"
+        + "</p>"
+    )
+
+
+# ─────────────────────────────────────────────
+# Email 1 — Band-wise picks table
 # ─────────────────────────────────────────────
 
 
 def _band_table(results: dict) -> str:
     """
-    Builds band-wise top picks HTML tables.
-    Two-section layout per band:
-      Section A — core trading info: ticker, company, buy, target, ROI, tax, liquidity
-      Section B — timing info: min hold, best sell, expires, best buy date, predicted price
+    Band-wise top picks.
+    Section A: ticker, company, buy, target, ROI, tax, liquidity, RISK
+    Section B: min hold, best sell, forecast expires, best buy date, predicted price
     """
     html = ""
     for band_label, df in results.items():
+        if band_label.startswith("_"):  # skip internal keys like _full_pool
+            continue
         html += f"""
         <h3 style="color:#0f3460; border-bottom:2px solid #0f3460;
                    padding-bottom:4px; margin-top:28px;">{band_label}</h3>
 
-        <!-- Section A: Core trading info -->
         <table style="width:100%; border-collapse:collapse; font-size:11px; margin-bottom:0;">
             <thead>
                 <tr style="background:#0f3460; color:white; text-align:left;">
@@ -41,6 +88,7 @@ def _band_table(results: dict) -> str:
                     <th style="padding:5px 7px;">Tax</th>
                     <th style="padding:5px 7px;">Turnover</th>
                     <th style="padding:5px 7px;">Liquidity</th>
+                    <th style="padding:5px 7px;">Risk</th>
                 </tr>
             </thead>
             <tbody>
@@ -49,6 +97,10 @@ def _band_table(results: dict) -> str:
             bg = "#f5f5f5" if i % 2 == 0 else "#ffffff"
             tax_color = "#16a34a" if row["Tax_Type"] == "LTCG" else "#d97706"
             liq_color = "#16a34a" if row.get("Liquidity") == "High" else "#d97706"
+            risk_label = row.get("Fundamental_Risk", "Unknown")
+            risk_score = row.get("Risk_Score", None)
+            # Truncate reasons to fit cell — full text in title tooltip
+            reasons_tip = str(row.get("Risk_Reasons", "")).replace('"', "'")
             html += f"""
             <tr style="background:{bg};">
                 <td style="padding:5px 7px; color:#999;">{i + 1}</td>
@@ -73,11 +125,14 @@ def _band_table(results: dict) -> str:
                 <td style="padding:5px 7px; color:{liq_color}; font-weight:bold;">
                     {row.get("Liquidity", "—")}
                 </td>
+                <td style="padding:5px 7px;" title="{reasons_tip}">
+                    {_risk_badge(risk_label, risk_score)}
+                </td>
             </tr>
             """
         html += "</tbody></table>"
 
-        # Section B: Timing info
+        # Section B — timing
         html += """
         <table style="width:100%; border-collapse:collapse; font-size:11px;
                       border-top:2px solid #e5e7eb; margin-bottom:20px;">
@@ -119,12 +174,34 @@ def _band_table(results: dict) -> str:
     return html
 
 
+# ─────────────────────────────────────────────
+# Email 2 — Portfolio combinations tables
+# ─────────────────────────────────────────────
+
+
+def _risk_breakdown_bar(summary: dict) -> str:
+    """
+    Renders a small inline risk breakdown pill row from summary["Risk_Breakdown"].
+    e.g.  Low: 7   Medium: 3   High: 2
+    """
+    breakdown = summary.get("Risk_Breakdown", {})
+    if not breakdown:
+        return ""
+    parts = []
+    for tier in ["Low", "Medium", "High"]:
+        n = breakdown.get(tier, 0)
+        if n:
+            parts.append(f"{_risk_badge(tier)} {n}")
+    if not parts:
+        return ""
+    return "&nbsp;|&nbsp; <strong>Risk mix:</strong> " + " &nbsp; ".join(parts)
+
+
 def _portfolio_tables(portfolios: list) -> str:
     """
-    Builds HTML for all 10 portfolio combinations.
-    Two-section layout per stock to keep table width manageable:
-      Row A — trading info: ticker, company, band, buy, shares, invested, exit, profit, ROI
-      Row B — timing info:  best sell date, expires, best buy date, predicted buy price
+    All portfolio combinations.
+    Section A: ticker, company, band, buy, qty, invested, exit, profit, ROI, RISK
+    Section B: best sell, forecast expires, best buy date, predicted buy price
     """
     if not portfolios:
         return "<p style='color:#999;'>No portfolio combinations generated.</p>"
@@ -141,12 +218,20 @@ def _portfolio_tables(portfolios: list) -> str:
         "#78281f",
         "#1a5276",
         "#0b5345",
+        "#1a3c4a",
+        "#2c3e50",
     ]
 
     for i, combo in enumerate(portfolios):
         s = combo["summary"]
         pf = combo["portfolio"]
         color = colors[i % len(colors)]
+        risk_tier_label = s.get("Risk_Tier", "")
+        tier_display = (
+            f" &nbsp;&#183;&nbsp; <span style='font-size:11px; opacity:0.9;'>{risk_tier_label} strategy</span>"
+            if risk_tier_label
+            else ""
+        )
 
         html += f"""
         <div style="margin-top:28px; border:1px solid #ddd; border-radius:6px;
@@ -154,7 +239,7 @@ def _portfolio_tables(portfolios: list) -> str:
             <div style="background:{color}; color:white; padding:12px 16px;">
                 <span style="font-size:15px; font-weight:bold;">
                     #{i + 1} &mdash; {combo["name"]}
-                </span><br/>
+                </span>{tier_display}<br/>
                 <span style="font-size:12px; opacity:0.85;">{combo["description"]}</span>
             </div>
             <div style="background:#f9f9f9; padding:10px 16px; font-size:13px;">
@@ -167,9 +252,10 @@ def _portfolio_tables(portfolios: list) -> str:
                 &nbsp;|&nbsp;
                 &#128197; <strong>Sell Window:</strong>
                     {s["Earliest_Sell"]} &rarr; {s["Latest_Sell"]}
+                {_risk_breakdown_bar(s)}
             </div>
 
-            <!-- ── Section A: Trading Info ── -->
+            <!-- Section A: Trading Info -->
             <table style="width:100%; border-collapse:collapse; font-size:11px;">
                 <thead>
                     <tr style="background:#eef2f7; text-align:left; color:#333;">
@@ -183,12 +269,15 @@ def _portfolio_tables(portfolios: list) -> str:
                         <th style="padding:5px 7px;">Exit Value</th>
                         <th style="padding:5px 7px;">Net Profit</th>
                         <th style="padding:5px 7px;">Net ROI</th>
+                        <th style="padding:5px 7px;">Risk</th>
                     </tr>
                 </thead>
                 <tbody>
         """
         for j, row in pf.iterrows():
             bg = "#ffffff" if j % 2 == 0 else "#f5f5f5"
+            risk_label = row.get("Fundamental_Risk", "Unknown")
+            risk_score = row.get("Risk_Score", None)
             html += f"""
                     <tr style="background:{bg};">
                         <td style="padding:5px 7px; font-weight:bold; white-space:nowrap;">
@@ -223,11 +312,14 @@ def _portfolio_tables(portfolios: list) -> str:
                                    white-space:nowrap;">
                             +{row["Net_ROI_%"]}%
                         </td>
+                        <td style="padding:5px 7px;">
+                            {_risk_badge(risk_label, risk_score)}
+                        </td>
                     </tr>
             """
         html += "</tbody></table>"
 
-        # ── Section B: Timing Info ──
+        # Section B — timing
         html += """
             <table style="width:100%; border-collapse:collapse; font-size:11px;
                           border-top:2px solid #e5e7eb;">
@@ -269,12 +361,11 @@ def _portfolio_tables(portfolios: list) -> str:
 
 
 # ─────────────────────────────────────────────
-# Email 1 — Band-wise picks
+# Email 1 builder
 # ─────────────────────────────────────────────
 
 
 def _build_picks_html(results: dict) -> str:
-    """Email 1 — Band-wise top picks only. Stays well under 102KB."""
     today = datetime.today().strftime("%B %Y")
     html = f"""
     <html><body style="font-family:Arial,sans-serif; max-width:1000px;
@@ -289,6 +380,7 @@ def _build_picks_html(results: dict) -> str:
     <p style="color:#777; font-size:13px;">
         &#128231; This is email 1 of 2. Portfolio combinations follow in the next email.
     </p>
+    {_risk_legend()}
     <hr style="border:1px solid #ddd;"/>
     """
     if not results:
@@ -306,12 +398,11 @@ def _build_picks_html(results: dict) -> str:
 
 
 # ─────────────────────────────────────────────
-# Email 2 — Portfolio combinations
+# Email 2 builder
 # ─────────────────────────────────────────────
 
 
 def _build_portfolio_html(portfolios: list) -> str:
-    """Email 2 — Portfolio combinations only. Stays well under 102KB."""
     today = datetime.today().strftime("%B %Y")
     html = f"""
     <html><body style="font-family:Arial,sans-serif; max-width:1000px;
@@ -324,9 +415,10 @@ def _build_portfolio_html(portfolios: list) -> str:
         &#128231; This is email 2 of 2. Band-wise picks are in the previous email.
     </p>
     <p style="color:#777; font-size:13px; margin-top:0;">
-        10 ways to deploy &#8377;1,00,000 this month. Exact share quantities &mdash;
-        place directly as market orders. Pick the strategy that fits your timeline.
+        {len(portfolios)} ways to deploy &#8377;1,00,000 this month. Exact share quantities —
+        place directly as market orders. Pick the strategy that fits your risk appetite and timeline.
     </p>
+    {_risk_legend()}
     <hr style="border:1px solid #ddd;"/>
     {_portfolio_tables(portfolios)}
     <hr style="border:1px solid #ddd; margin-top:24px;"/>
@@ -352,23 +444,25 @@ def _build_improvement_html(
     best_combo: dict,
     improved_stocks: list,
 ) -> str:
-    """Builds improvement alert email HTML."""
     now = datetime.now().strftime("%I:%M %p")
     today = datetime.today().strftime("%d %b %Y")
     s = best_combo.get("summary", {})
     pf = best_combo.get("portfolio", [])
 
-    # ── Stocks with better entry price ──
+    # Dipped stocks table — includes risk badge
     improved_rows = ""
     for i, st in enumerate(improved_stocks):
         bg = "#fffbeb" if i % 2 == 0 else "#ffffff"
+        risk_label = st.get("risk_label", "Unknown")
+        risk_score = st.get("risk_score", None)
         improved_rows += f"""
         <tr style="background:{bg};">
-            <td style="padding:8px; font-weight:bold;">{st["ticker"]}</td>
+            <td style="padding:8px; font-weight:bold;">{st["ticker"].replace(".NS", "")}</td>
             <td style="padding:8px; color:#555;">{st["company"]}</td>
             <td style="padding:8px; color:#6b7280;">&#8377;{st["prev_price"]}</td>
             <td style="padding:8px; color:#16a34a; font-weight:bold;">&#8377;{st["curr_price"]}</td>
             <td style="padding:8px; color:#dc2626; font-weight:bold;">&#9660; {st["pct_drop"]}%</td>
+            <td style="padding:8px;">{_risk_badge(risk_label, risk_score)}</td>
         </tr>"""
 
     improved_section = ""
@@ -384,18 +478,21 @@ def _build_improvement_html(
                     <th style="padding:8px;">Previous Price</th>
                     <th style="padding:8px;">Current Price</th>
                     <th style="padding:8px;">Drop</th>
+                    <th style="padding:8px;">Risk</th>
                 </tr>
             </thead>
             <tbody>{improved_rows}</tbody>
         </table>"""
 
-    # ── Best combo table ──
+    # Best combo rows — includes risk badge
     combo_rows = ""
-    for i, row in enumerate(pf):
+    for i, row in enumerate(pf if isinstance(pf, list) else pf.to_dict("records")):
         bg = "#f9fafb" if i % 2 == 0 else "#ffffff"
+        risk_label = row.get("Fundamental_Risk", "Unknown")
+        risk_score = row.get("Risk_Score", None)
         combo_rows += f"""
         <tr style="background:{bg};">
-            <td style="padding:7px; font-weight:bold;">{row.get("Stock", "")}</td>
+            <td style="padding:7px; font-weight:bold;">{str(row.get("Stock", "")).replace(".NS", "")}</td>
             <td style="padding:7px; color:#555;">{row.get("Company_Name", "")}</td>
             <td style="padding:7px;">&#8377;{row.get("Buy_Price", "")}</td>
             <td style="padding:7px; font-weight:bold;">{int(row.get("Shares", 0))}</td>
@@ -404,6 +501,7 @@ def _build_improvement_html(
                 +{row.get("Net_ROI_%", "")}%
             </td>
             <td style="padding:7px;">{row.get("Best_Sell_Date", "")}</td>
+            <td style="padding:7px;">{_risk_badge(risk_label, risk_score)}</td>
         </tr>"""
 
     return f"""
@@ -447,7 +545,6 @@ def _build_improvement_html(
         &#128188; Best Combination Now &mdash; {best_combo.get("name", "")}
     </h3>
     <p style="color:#555; font-size:13px;">{best_combo.get("description", "")}</p>
-
     <div style="background:#f0fdf4; border:1px solid #86efac;
                 padding:10px 16px; border-radius:4px; margin-bottom:12px;">
         &#128176; <strong>Invested:</strong> &#8377;{s.get("Total_Invested", 0):,}
@@ -459,6 +556,7 @@ def _build_improvement_html(
         &nbsp;|&nbsp;
         &#128197; <strong>Sell Window:</strong>
         {s.get("Earliest_Sell", "")} &rarr; {s.get("Latest_Sell", "")}
+        {_risk_breakdown_bar(s)}
     </div>
 
     <table style="width:100%; border-collapse:collapse; font-size:12px; margin-bottom:20px;">
@@ -471,13 +569,16 @@ def _build_improvement_html(
                 <th style="padding:7px;">Invested</th>
                 <th style="padding:7px;">Net ROI</th>
                 <th style="padding:7px;">Best Sell</th>
+                <th style="padding:7px;">Risk</th>
             </tr>
         </thead>
         <tbody>{combo_rows}</tbody>
     </table>
 
+    {_risk_legend()}
     <hr style="border:1px solid #ddd;"/>
     <p style="color:#999; font-size:11px;">
+        1.5% dip = stock is cheaper than the morning baseline — your entry price improved.<br/>
         Improvement threshold: 1.5% | Run: {run_label} at {now}<br/>
         Model-based screener &mdash; not financial advice. Verify before investing.
     </p>
@@ -485,7 +586,7 @@ def _build_improvement_html(
 
 
 # ─────────────────────────────────────────────
-# Send helpers
+# Send helpers (unchanged)
 # ─────────────────────────────────────────────
 
 
@@ -497,7 +598,6 @@ def _send_single(
     html: str,
     label: str,
 ) -> bool:
-    """Send one email. Returns True on success."""
     msg = MIMEMultipart("alternative")
     msg["Subject"] = subject
     msg["From"] = sender
@@ -528,7 +628,7 @@ def _get_credentials() -> tuple[str, str, str]:
 
 
 # ─────────────────────────────────────────────
-# Public API
+# Public API (unchanged signatures)
 # ─────────────────────────────────────────────
 
 
@@ -537,24 +637,15 @@ def send_email_alert(
     portfolios: list = None,
     debug: bool = False,
 ) -> None:
-    """
-    Monthly full report — sends two emails:
-        Email 1 — Band-wise top picks
-        Email 2 — 10 portfolio combinations
-    """
     sender, password, recipient = _get_credentials()
-
     if not all([sender, password, recipient]):
         print("  ❌ Email credentials missing.")
         return
-
     if debug:
         print(f"  Sender    : {sender}")
         print(f"  Recipient : {recipient}")
         print(f"  Password  : {'*' * len(password)}")
-
     today = datetime.today().strftime("%B %Y")
-
     _send_single(
         sender,
         password,
@@ -583,25 +674,17 @@ def send_improvement_alert(
     current_results: dict,
     current_portfolios: list,
 ) -> None:
-    """
-    Intraday improvement alert — single email.
-    Fired when best portfolio ROI improves by >= 1.5% vs previous runs today.
-    """
     sender, password, recipient = _get_credentials()
-
     if not all([sender, password, recipient]):
         print("  ❌ Email credentials missing.")
         return
-
     now = datetime.now().strftime("%I:%M %p")
     today = datetime.today().strftime("%d %b %Y")
-
     subject = (
         f"🚨 Better Entry Alert ({run_label}) — "
         f"ROI {previous_roi:.1f}% → {current_roi:.1f}% "
         f"(+{improvement:.1f}%) — {today} {now}"
     )
-
     html = _build_improvement_html(
         run_label=run_label,
         current_roi=current_roi,
@@ -610,7 +693,6 @@ def send_improvement_alert(
         best_combo=best_combo,
         improved_stocks=improved_stocks,
     )
-
     _send_single(
         sender,
         password,
@@ -621,6 +703,11 @@ def send_improvement_alert(
     )
 
 
+# ─────────────────────────────────────────────
+# Accuracy email (unchanged)
+# ─────────────────────────────────────────────
+
+
 def _build_accuracy_html(
     target_date: str,
     new_records: list,
@@ -629,10 +716,7 @@ def _build_accuracy_html(
     bias: float,
     summary: list | None = None,
 ) -> str:
-    """Builds accuracy report email HTML."""
     today = __import__("datetime").datetime.today().strftime("%d %b %Y")
-
-    # ── New records table ──
     rows = ""
     for i, r in enumerate(new_records):
         bg = "#f9fafb" if i % 2 == 0 else "#ffffff"
@@ -653,7 +737,6 @@ def _build_accuracy_html(
             <td style="padding:7px; color:#6b7280;">{r["Scan_Date"]}</td>
         </tr>"""
 
-    # ── All-time accuracy stats ──
     total = len(full_log) if hasattr(full_log, "__len__") else 0
     all_mae = round(full_log["Error_Pct"].abs().mean(), 2) if total > 0 else 0
     all_bias = round(full_log["Error_Pct"].mean(), 2) if total > 0 else 0
@@ -665,7 +748,6 @@ def _build_accuracy_html(
     return f"""
     <html><body style="font-family:Arial,sans-serif; max-width:900px;
                         margin:auto; color:#1a1a1a;">
-
     <div style="background:#1a5276; color:white; padding:16px 20px;
                 border-radius:6px 6px 0 0;">
         <h2 style="margin:0; font-size:18px;">
@@ -675,7 +757,6 @@ def _build_accuracy_html(
             Checked today ({today}) — Predicted vs Actual closing price
         </p>
     </div>
-
     <div style="background:#eef2f7; border:1px solid #ddd;
                 padding:14px 20px; margin-bottom:20px;">
         <table style="width:100%; font-size:14px;">
@@ -701,7 +782,6 @@ def _build_accuracy_html(
             </tr>
         </table>
     </div>
-
     <h3 style="color:#0f3460; border-bottom:2px solid #0f3460; padding-bottom:4px;">
         &#128200; Predicted vs Actual — {target_date}
     </h3>
@@ -718,7 +798,6 @@ def _build_accuracy_html(
         </thead>
         <tbody>{rows}</tbody>
     </table>
-
     <h3 style="color:#0f3460; border-bottom:2px solid #0f3460; padding-bottom:4px;">
         &#128200; All-Time Accuracy ({total} predictions)
     </h3>
@@ -741,8 +820,6 @@ def _build_accuracy_html(
             </tr>
         </table>
     </div>
-
-    <!-- Convergence + Signal Summary -->
     <h3 style="color:#0f3460; border-bottom:2px solid #0f3460; padding-bottom:4px;">
         &#127919; Per-Stock Signal (Convergence + Historical Accuracy)
     </h3>
@@ -762,8 +839,7 @@ def _build_accuracy_html(
         {
         "".join(
             [
-                f'''
-        <tr style="background:{"#f9fafb" if i % 2 == 0 else "#ffffff"};">
+                f'''<tr style="background:{"#f9fafb" if i % 2 == 0 else "#ffffff"};">
             <td style="padding:7px; font-weight:bold;">{s["stock"]}</td>
             <td style="padding:7px;">{s["conv"].get("Best_Buy_Date", "N/A")}</td>
             <td style="padding:7px;">&#8377;{s["conv"].get("Price_Min", "?")} – &#8377;{s["conv"].get("Price_Max", "?")}</td>
@@ -778,7 +854,6 @@ def _build_accuracy_html(
     }
         </tbody>
     </table>
-
     <hr style="border:1px solid #ddd;"/>
     <p style="color:#999; font-size:11px;">
         Error % = (Actual &#8722; Predicted) / Predicted &times; 100<br/>
@@ -797,17 +872,14 @@ def send_accuracy_email(
     bias: float,
     summary: list | None = None,
 ) -> None:
-    """Sends prediction accuracy report email."""
     sender, password, recipient = _get_credentials()
     if not all([sender, password, recipient]):
         print("  ❌ Email credentials missing.")
         return
-
     subject = (
-        f"&#127919; Prediction Accuracy — {target_date} | "
+        f"🎯 Prediction Accuracy — {target_date} | "
         f"MAE: {mae:.2f}% | {len(new_records)} stocks checked"
     )
-
     html = _build_accuracy_html(
         target_date=target_date,
         new_records=new_records,
@@ -816,7 +888,6 @@ def send_accuracy_email(
         bias=bias,
         summary=summary,
     )
-
     _send_single(
         sender,
         password,

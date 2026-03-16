@@ -46,7 +46,7 @@ def _iter_portfolio_rows(portfolio) -> list[dict]:
 
 def _extract_stock_data(portfolios: list) -> dict[str, dict]:
     """
-    Returns {ticker: {price, roi, company, best_sell}}
+    Returns {ticker: {price, roi, company, best_sell, risk_label, risk_score}}
     keeping the LOWEST price seen across all combos.
     """
     stocks = {}
@@ -59,6 +59,8 @@ def _extract_stock_data(portfolios: list) -> dict[str, dict]:
                 "Company_Name", ticker.replace(".NS", "") if ticker else ""
             )
             sell = row.get("Best_Sell_Date", "")
+            risk_label = row.get("Fundamental_Risk", "Unknown")
+            risk_score = row.get("Risk_Score", None)
             if not ticker or not price:
                 continue
             if ticker not in stocks or price < stocks[ticker]["price"]:
@@ -67,6 +69,8 @@ def _extract_stock_data(portfolios: list) -> dict[str, dict]:
                     "roi": roi,
                     "company": company,
                     "sell": sell,
+                    "risk_label": risk_label,
+                    "risk_score": risk_score,
                 }
     return stocks
 
@@ -101,6 +105,8 @@ def save_run_results(
 
     serialised_results = {}
     for band, df in results.items():
+        if band.startswith("_"):  # skip internal keys like _full_pool
+            continue
         import pandas as pd
 
         if isinstance(df, pd.DataFrame):
@@ -350,6 +356,8 @@ def check_and_alert(
                     "pct_drop": round(pct_drop, 2),
                     "curr_roi": curr["roi"],
                     "sell": curr["sell"],
+                    "risk_label": curr.get("risk_label", "Unknown"),
+                    "risk_score": curr.get("risk_score", None),
                 }
             )
 

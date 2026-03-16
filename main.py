@@ -64,13 +64,24 @@ def run_analysis(run_label: str = "manual", send_full_email: bool = False):
 
     results = analyze_and_predict()
 
-    if not results:
+    band_results = {k: v for k, v in results.items() if not k.startswith("_")}
+
+    if not band_results:
         print("\nNo stocks met the criteria this run.")
         if send_full_email:
             send_email_alert(results, portfolios=[])
         return
 
+    # Count full pool vs email pool for transparency
+    full_pool = results.get("_full_pool")
+    full_count = len(full_pool) if full_pool is not None else "?"
+    email_count = sum(len(df) for k, df in results.items() if not k.startswith("_"))
+    print(f"  Full pool passing ROI threshold: {full_count} stocks")
+    print(f"  Shown in email (band caps):      {email_count} stocks\n")
+
     for band_label, df in results.items():
+        if band_label.startswith("_"):
+            continue
         print(f"\n{'─' * 50}")
         print(f"  {band_label}  —  Top {len(df)} picks")
         print(f"{'─' * 50}")
@@ -191,8 +202,14 @@ def main():
         return
 
     # ── Accuracy check run ──
-    if "--accuracy" in args:
-        print(f"[{today}] Running prediction accuracy check...")
+    # --accuracy  : manual / forced run — checks regardless of time
+    # --eod       : end-of-day run triggered by workflow at 15:00 IST only
+    #               waits until market close data is available before checking
+    if "--accuracy" in args or "--eod" in args:
+        if not is_nse_trading_day(today):
+            print(f"[{today}] Not an NSE trading day — skipping accuracy check.")
+            sys.exit(0)
+        print(f"[{today}] Running prediction accuracy check (post-market close)...")
         check_predictions()
         return
 

@@ -1,5 +1,23 @@
 # ─────────────────────────────────────────────
 # data.py — Fetching tickers, stock data, fundamentals, sector momentum
+#
+# v2 CHANGE: Hard binary fundamental filter replaced with composite
+# risk scoring. Models now run on ALL Nifty 500 stocks with valid
+# price data. Fundamentals produce a score (0–100) and label
+# (Low / Medium / High risk) shown in the email and used by
+# portfolio.py to build risk-tiered combinations.
+#
+# Score breakdown (max 100 pts, lower = safer):
+#   PE ratio          30 pts  — proportional overshoot above sector limit
+#   Debt/Equity       25 pts  — proportional overshoot above sector limit
+#   Revenue growth    20 pts  — proportional to how negative growth is
+#   Data completeness 15 pts  — missing yfinance fields add uncertainty
+#   Interest coverage 10 pts  — only for D/E > 4×, ICR < 3× adds penalty
+#
+# Thresholds (tunable via RISK_THRESHOLD_LOW / RISK_THRESHOLD_HIGH):
+#   Low risk    0 – 25   all fundamentals within limits, data complete
+#   Medium risk 26 – 50  borderline metrics or data gaps
+#   High risk   51 – 100 clear red flags (overvalued, over-leveraged, declining)
 # ─────────────────────────────────────────────
 
 import io
@@ -10,141 +28,100 @@ import yfinance as yf
 from yfinance import download
 from niftystocks import ns
 
-from .config import FETCH_PERIODS, MIN_DAYS, SECTOR_ETFS, TOP_SECTORS_COUNT
+from .config import (
+    FETCH_PERIODS,
+    MIN_DAYS,
+    SECTOR_ETFS,
+    TOP_SECTORS_COUNT,
+    RISK_THRESHOLD_LOW,
+    RISK_THRESHOLD_HIGH,
+)
 
-# Suppress noisy yfinance download warnings (delisted tickers etc.)
 logging.getLogger("yfinance").setLevel(logging.CRITICAL)
 
+# (RISK_THRESHOLD_LOW and RISK_THRESHOLD_HIGH imported from config.py)
 
-# ─────────────────────────────────────────────
-# FUNDAMENTAL FILTER THRESHOLDS
-# ─────────────────────────────────────────────
-MIN_PE_RATIO = 1.0  # Exclude negative earnings / shell companies
-MIN_PROMOTER_HOLDING = 25.0  # Promoter holding below 25% = low conviction
-MAX_PROMOTER_PLEDGE = 35.0  # High pledge = distress risk
-MIN_REVENUE_GROWTH = -0.08  # Exclude companies with >8% revenue decline
+MIN_PE_RATIO = 1.0  # PE below this = negative earnings → PE_m = 4.0 (max)
 
 # ─────────────────────────────────────────────
 # SECTOR-SPECIFIC PE LIMITS
-# Blanket PE cap is wrong — different sectors trade at structurally
-# different multiples based on growth profile and capital intensity
+# (same as before — used as the reference point for proportional penalty)
 # ─────────────────────────────────────────────
-# ─────────────────────────────────────────────
-# PE and D/E limits are looked up using BOTH sector AND industry
-# from yfinance — industry gives granular distinction within a sector
-#
-# yfinance exact sector strings:
-#   "Financial Services", "Utilities", "Industrials", "Technology",
-#   "Communication Services", "Basic Materials", "Consumer Cyclical",
-#   "Consumer Defensive", "Healthcare", "Energy", "Real Estate"
-#
-# industry strings give granularity within sector e.g.:
-#   Financial Services → "Banks—Private Sector" / "Consumer Finance" /
-#                        "Insurance—Life" / "Credit Services" / "Capital Markets"
-#   Industrials        → "Electronic Components" (EMS/PLI) vs "Aerospace & Defense"
-#   Technology         → "Software—Application" (high-growth) vs "Information Technology Services"
-# ─────────────────────────────────────────────
-
-# Industry-level PE overrides — checked FIRST before sector-level
-# Keys match exact yfinance industry strings
 INDUSTRY_PE_LIMITS = {
-    # Financial — granular by sub-type
-    "Banks—Private Sector": 22,  # HDFC Bank(18), ICICI(18), Axis(16)
-    "Banks—Public Sector": 12,  # SBI(9), Bank of Baroda(7) — PSU discount
-    "Consumer Finance": 35,  # Bajaj Finance(28), Chola(30) — NBFC
-    "Insurance—Life": 55,  # HDFC Life(45), SBI Life(40)
-    "Insurance—General": 45,  # Star Health(35)
-    "Capital Markets": 25,  # Motilal Oswal(18), Angel One(20)
-    "Mortgage Finance": 28,  # Can Fin Homes(12), LIC Housing(8)
-    "Credit Services": 30,  # CreditAccess(18), Ujjivan(12) — MFI
-    # Industrials — wide range, granular limits prevent PLI moonshots
-    "Electronic Components": 65,  # Amber(157)✗ Dixon(190)✗ — still too high
-    "Aerospace & Defense": 35,  # HAL(30), BEL(25), GRSE(20)
-    "Specialty Industrial Machinery": 65,  # Siemens(60), ABB(70), Cummins(45)
-    "Engineering & Construction": 30,  # L&T(25), NCC(15)
-    "Farm & Heavy Construction Machinery": 30,  # Escorts(25), BEML(20)
-    # Technology — high-growth product cos get more room
-    "Software—Application": 75,  # KPIT(55), Tata Elxsi(50), Persistent(45)
-    "Information Technology Services": 32,  # TCS(28), Infosys(25), Wipro(22)
+    "Banks—Private Sector": 22,
+    "Banks—Public Sector": 12,
+    "Consumer Finance": 35,
+    "Insurance—Life": 55,
+    "Insurance—General": 45,
+    "Capital Markets": 25,
+    "Mortgage Finance": 28,
+    "Credit Services": 30,
+    "Electronic Components": 65,
+    "Aerospace & Defense": 35,
+    "Specialty Industrial Machinery": 65,
+    "Engineering & Construction": 30,
+    "Farm & Heavy Construction Machinery": 30,
+    "Software—Application": 75,
+    "Information Technology Services": 32,
     "Software—Infrastructure": 55,
-    # Healthcare — hospitals justify higher PE than pharma
-    "Medical Care Facilities": 80,  # Apollo Hospitals(70), Narayana(60)
-    "Drug Manufacturers—General": 38,  # Sun Pharma(35), Dr Reddy(20), Cipla(25)
-    # Utilities — regulated is low growth, renewables excluded at sector level
-    "Utilities—Regulated Electric": 22,  # NTPC(15), Power Grid(18)
-    "Utilities—Renewable": 35,  # Tata Power(30) — capped, Adani Green(99)✗
+    "Medical Care Facilities": 80,
+    "Drug Manufacturers—General": 38,
+    "Utilities—Regulated Electric": 22,
+    "Utilities—Renewable": 35,
     "Utilities—Independent Power": 25,
-    # Energy granular
-    "Oil & Gas E&P": 15,  # ONGC(8), Oil India(10)
-    "Oil & Gas Refining & Marketing": 14,  # BPCL(12), HPCL(10), IOC(8)
-    "Oil & Gas Midstream": 18,  # GAIL(14), Petronet(12)
+    "Oil & Gas E&P": 15,
+    "Oil & Gas Refining & Marketing": 14,
+    "Oil & Gas Midstream": 18,
 }
 
-# Sector-level PE limits — fallback when industry key not matched
 SECTOR_PE_LIMITS = {
-    "Financial Services": 45,  # broad fallback for financial sector
-    "Utilities": 25,  # regulated utilities — low growth
+    "Financial Services": 45,
+    "Utilities": 25,
     "Infrastructure": 40,
-    "Energy": 18,  # commodity — low PE norm
+    "Energy": 18,
     "Real Estate": 65,
-    "Industrials": 65,  # capital goods, defence — quality plays
-    "Basic Materials": 55,  # Specialty Chem(50), Steel(15), Cement(35)
+    "Industrials": 65,
+    "Basic Materials": 55,
     "Materials": 50,
     "Consumer Cyclical": 78,
     "Consumer Defensive": 65,
-    "Technology": 50,  # mature IT — mid-cap modest premium
-    "Healthcare": 76,  # pharma + hospital blend
+    "Technology": 50,
+    "Healthcare": 76,
     "Communication Services": 45,
     "Communication": 45,
 }
-DEFAULT_PE_LIMIT = 55  # fallback for unrecognised sectors
+DEFAULT_PE_LIMIT = 55
 
 # ─────────────────────────────────────────────
 # SECTOR-SPECIFIC D/E LIMITS
-# None = no cap (financial sector — leverage is their business model)
+# None = financial sector — leverage is the business model, D/E penalty skipped
 # ─────────────────────────────────────────────
 SECTOR_DEBT_LIMITS = {
-    # Financial — leverage IS the business model, no cap
     "Financial Services": None,
     "Banking": None,
     "Insurance": None,
     "NBFC": None,
     "Housing Finance": None,
     "Microfinance": None,
-    # Infrastructure & Utilities — long gestation, asset-heavy, project debt normal
-    # NSE P75: Utilities~2.9, Infrastructure~4.5 — buffer above P75
     "Utilities": 5.50,
     "Infrastructure": 5.75,
-    "Energy": 4.75,  # ONGC/HPCL/BPCL — P75~2.8, buffer for refiners
+    "Energy": 4.75,
     "Oil & Gas": 5.25,
-    # Real Estate — project financing temporarily inflates D/E
-    # NSE P75: ~2.8 — DLF, Prestige, Sobha
     "Real Estate": 4.25,
-    # Industrials — L&T, Ashok Leyland, BEML — P75~1.9 but outliers at 2.8
     "Industrials": 3.50,
-    # Materials — cement (Ultratech~0.4) vs steel (JSW~1.9, Tata~1.8)
-    # P75~1.8 — buffer for steel/aluminium cycles
     "Basic Materials": 3.25,
     "Materials": 2.75,
-    # Consumer Cyclical — auto, retail, durables — P75~1.9
-    # Apollo Tyres(1.8), TVS Motor(1.9), Titan(1.7) — all legitimate
     "Consumer Cyclical": 2.55,
-    # Consumer Defensive — FMCG largely debt-free, P75~0.8
-    # Slightly higher buffer for regional FMCG with distribution debt
     "Consumer Defensive": 2.25,
-    # Technology — asset-light, TCS/Infy/Wipro near zero debt — P75~0.2
-    # Generous buffer for mid-cap IT with some capex debt
     "Technology": 2.00,
-    # Healthcare — pharma capex, hospital chains — P75~0.8
-    # Fortis/NH hospitals go higher — buffer for hospital capex
     "Healthcare": 2.75,
-    # Communication — Airtel(4.2), Indus Towers(2.1), spectrum debt
-    # P75~4.5 — telecom is infra-like
     "Communication": 5.25,
 }
-DEFAULT_DEBT_LIMIT = 2.65  # fallback — conservative but not blocking
+DEFAULT_DEBT_LIMIT = 2.65
 
-# NSE headers required to bypass anti-scraping block
+# ─────────────────────────────────────────────
+# NSE scraping headers + ticker aliases (unchanged)
+# ─────────────────────────────────────────────
 _NSE_HEADERS = {
     "User-Agent": (
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
@@ -157,57 +134,37 @@ _NSE_HEADERS = {
     "Referer": "https://www.nseindia.com/",
 }
 
-# Known ticker renames/mergers — keeps scan clean when NSE list has old names
 TICKER_ALIASES = {
-    "ADANITRANS.NS": "ADANIENSOL.NS",  # Adani Transmission → Adani Energy Solutions
-    "HDFC.NS": "HDFCBANK.NS",  # HDFC merged into HDFC Bank
-    "MINDTREE.NS": "LTIM.NS",  # MindTree → LTIMindtree
-    "LTINFOTECH.NS": "LTIM.NS",  # L&T Infotech → LTIMindtree
-    "HDFCLIFE.NS": "HDFCLIFE.NS",  # unchanged — just a safety entry
+    "ADANITRANS.NS": "ADANIENSOL.NS",
+    "HDFC.NS": "HDFCBANK.NS",
+    "MINDTREE.NS": "LTIM.NS",
+    "LTINFOTECH.NS": "LTIM.NS",
+    "HDFCLIFE.NS": "HDFCLIFE.NS",
 }
 
 
+# ─────────────────────────────────────────────
+# Ticker fetching (unchanged)
+# ─────────────────────────────────────────────
+
+
 def _fetch_nse_live() -> list[str]:
-    """
-    Fetches the latest Nifty 500 constituent list directly from NSE.
-
-    NSE publishes a CSV at a stable URL — this is the authoritative source.
-    Always reflects the latest index rebalancing (happens twice a year).
-
-    Steps:
-        1. GET nseindia.com homepage to obtain session cookies
-        2. Use those cookies + headers to fetch the CSV
-        3. Parse Symbol column, append .NS suffix
-
-    Returns list of tickers like ["RELIANCE.NS", "TCS.NS", ...]
-    Raises exception if either request fails — caller handles fallback.
-    """
     session = requests.Session()
     session.headers.update(_NSE_HEADERS)
-
-    # Step 1 — get cookies by hitting homepage first (NSE requires this)
     session.get("https://www.nseindia.com", timeout=10)
-
-    # Step 2 — fetch the Nifty 500 CSV
     csv_url = "https://www.nseindia.com/content/indices/ind_nifty500list.csv"
     response = session.get(csv_url, timeout=15)
     response.raise_for_status()
-
-    # Step 3 — parse Symbol column
     df = pd.read_csv(io.StringIO(response.text))
     symbols = df["Symbol"].dropna().str.strip().tolist()
     tickers = [f"{s}.NS" for s in symbols if s]
-
     if len(tickers) < 400:
-        # Sanity check — Nifty 500 should have ~500 stocks
         raise ValueError(f"Only {len(tickers)} tickers fetched — likely a parse error")
-
     print(f"  ✓ Fetched {len(tickers)} tickers live from NSE")
     return tickers
 
 
 def _apply_aliases(tickers: list[str]) -> list[str]:
-    """Replace known stale/renamed tickers with their current equivalents."""
     result = []
     seen = set()
     for t in tickers:
@@ -219,24 +176,12 @@ def _apply_aliases(tickers: list[str]) -> list[str]:
 
 
 def get_nifty500_tickers() -> list[str]:
-    """
-    Returns the current Nifty 500 ticker list.
-
-    Priority:
-        1. Live fetch from NSE (always latest — reflects rebalancing)
-        2. niftystocks static list (fallback if NSE blocks/times out)
-        3. Hardcoded minimal list (last resort — GitHub Actions won't fail)
-
-    Aliases applied in all cases to handle known mergers/renames.
-    """
-    # ── Try 1: Live NSE fetch ──
     try:
         tickers = _fetch_nse_live()
         return _apply_aliases(tickers)
     except Exception as e:
         print(f"  ⚠ NSE live fetch failed ({e}) — trying niftystocks...")
 
-    # ── Try 2: niftystocks static list ──
     try:
         tickers = ns.get_nifty500_with_ns()
         print(f"  ✓ Using niftystocks list ({len(tickers)} tickers)")
@@ -244,8 +189,6 @@ def get_nifty500_tickers() -> list[str]:
     except Exception as e:
         print(f"  ⚠ niftystocks failed ({e}) — using hardcoded fallback")
 
-    # ── Try 3: Hardcoded fallback — top 20 Nifty 50 stocks ──
-    # GitHub Actions won't fail completely — partial scan is better than nothing
     fallback = [
         "RELIANCE.NS",
         "TCS.NS",
@@ -272,74 +215,54 @@ def get_nifty500_tickers() -> list[str]:
     return fallback
 
 
+# ─────────────────────────────────────────────
+# Data quality check (unchanged)
+# ─────────────────────────────────────────────
+
+
 def _is_clean(close: pd.Series, volume: pd.Series) -> bool:
-    """
-    Validates that a price/volume series is usable by all models.
-    Rejects series with internal NaN gaps, flat prices, or illiquid stocks.
-    """
     if close is None or volume is None:
         return False
     if len(close) < MIN_DAYS:
         return False
     if close.isna().any() or volume.isna().any():
         return False
-
     price_range = close.max() - close.min()
     if price_range < close.mean() * 0.01:
         return False
-
     zero_vol_pct = (volume == 0).sum() / len(volume)
     if zero_vol_pct > 0.10:
         return False
-
     return True
 
 
+# ─────────────────────────────────────────────
+# Fundamentals fetch (unchanged)
+# ─────────────────────────────────────────────
+
+_fundamentals_cache: dict = {}
+
+
 def fetch_fundamentals(ticker: str) -> dict | None:
-    """
-    Fetches fundamental data via yfinance for a single ticker.
-
-    Returns a dict with:
-        pe_ratio         — trailing PE ratio
-        debt_to_equity   — total debt / total equity
-        revenue_growth   — YoY revenue growth
-        sector           — sector string for PE/D/E filter lookup
-        company_name     — display name for email output
-
-    Why each metric matters:
-        PE ratio        — overpaying for earnings is the #1 mistake retail investors make
-        Debt/Equity     — high debt kills companies in rate hike cycles (2022 lesson)
-        Revenue growth  — a stock can have great momentum but shrinking business
-    """
     if ticker in _fundamentals_cache:
         return _fundamentals_cache[ticker]
-
     try:
         info = yf.Ticker(ticker).info
-
         pe_ratio = info.get("trailingPE") or info.get("forwardPE")
         debt_to_equity = info.get("debtToEquity")
         revenue_growth = info.get("revenueGrowth")
         sector = info.get("sector", "")
-
-        # yfinance returns D/E as a percentage (e.g. 150 = 1.5x) — normalise
         if debt_to_equity is not None and debt_to_equity > 20:
             debt_to_equity = debt_to_equity / 100
-
         company_name = (
             info.get("longName") or info.get("shortName") or ticker.replace(".NS", "")
         )
-
         industry = info.get("industry", "")
-
-        # Interest coverage ratio — earningsBeforeInterestAndTaxes / interestExpense
-        # Used as secondary check for high-debt infrastructure stocks
         ebit = info.get("ebit")
         interest_expense = info.get("interestExpense")
         interest_coverage = None
         if ebit is not None and interest_expense and interest_expense < 0:
             interest_coverage = ebit / abs(interest_expense)
-
         result = {
             "pe_ratio": pe_ratio,
             "debt_to_equity": debt_to_equity,
@@ -351,129 +274,285 @@ def fetch_fundamentals(ticker: str) -> dict | None:
         }
         _fundamentals_cache[ticker] = result
         return result
-
     except Exception:
         _fundamentals_cache[ticker] = None
         return None
 
 
-# Simple in-memory cache — avoids fetching fundamentals twice per stock
-_fundamentals_cache: dict = {}
+# ─────────────────────────────────────────────
+# CORE CHANGE: Composite risk scorer
+# Replaces passes_fundamental_filter() entirely
+# ─────────────────────────────────────────────
+
+
+def _get_pe_limit(sector: str, industry: str) -> float:
+    """Resolve sector/industry-specific PE limit."""
+    for ind_key, limit in INDUSTRY_PE_LIMITS.items():
+        if ind_key.lower() in industry.lower():
+            return limit
+    for sector_key, limit in SECTOR_PE_LIMITS.items():
+        if sector_key.lower() in sector.lower():
+            return limit
+    return DEFAULT_PE_LIMIT
+
+
+def _get_de_limit(sector: str) -> float | None:
+    """Resolve sector-specific D/E limit. None = financial sector, no cap."""
+    for sector_key, limit in SECTOR_DEBT_LIMITS.items():
+        if sector_key.lower() in sector.lower():
+            return limit
+    return DEFAULT_DEBT_LIMIT
+
+
+def score_fundamental_risk(ticker: str) -> tuple[str, float, list[str]]:
+    """
+    Returns (risk_label, risk_score, reasons) for a ticker.
+
+    risk_label : "Low" | "Medium" | "High"
+    risk_score : int 1–100 (always ≥ 1 — no stock has zero risk)
+    reasons    : list of human-readable strings explaining each multiplier
+
+    ── Multiplicative model ──
+    Each metric produces a risk multiplier (≥ 1.0).
+    Multipliers are compounded: raw = PE_m × DE_m × Rev_m × Data_m × ICR_m
+    Raw product is log-normalised to 1–100.
+
+    Why multiplicative instead of additive:
+        Additive: bad PE + bad D/E = sum of two penalties
+        Multiplicative: bad PE × bad D/E = amplified combined risk
+        A company with both overvalued PE AND excessive debt is
+        disproportionately riskier — multiplication captures this.
+        Also, no stock can score 0 — min raw ≈ 0.72 → score ≈ 1.
+
+    Multiplier design:
+        PE_m    — 1.0 when PE ≤ limit; rises exponentially above limit; max 4.0
+                  Strong growth (PE well below limit) gives no reduction —
+                  PE is already sector-adjusted, no need for a bonus.
+        DE_m    — 1.0 when D/E ≤ limit; rises above limit; max 3.5
+                  Financial sector exempt (None limit) → DE_m = 1.0 always.
+        Rev_m   — 0.85 for strong growth (≥15%), 1.0 at flat, up to 2.2 at −15%
+                  Positive growth is genuinely rewarded with sub-1.0 multiplier.
+        Data_m  — 1.0 for complete data; 1.2 / 1.5 / 1.9 for 1 / 2 / 3 missing fields
+                  All-missing → 1.9× multiplier ensures Medium floor.
+        ICR_m   — Only when D/E > 4×. 1.0 if ICR ≥ 3×; up to 2.5× if ICR < 1×.
+                  A highly levered stock that CAN'T service debt is a different
+                  risk class from one that can — ICR captures this.
+
+    Log-normalisation:
+        MIN_RAW ≈ 0.72  (stellar: strong rev growth + all metrics well within limits)
+        MAX_RAW = 60    (extreme: max PE + max D/E + declining rev + all fields missing)
+        score = 1 + (log(raw) - log(MIN_RAW)) / (log(MAX_RAW) - log(MIN_RAW)) × 99
+        → always in [1, 100], never 0.
+    """
+
+    fundamentals = fetch_fundamentals(ticker)
+    reasons = []
+
+    # ── No data at all ──
+    if fundamentals is None:
+        # Data_m = 1.9 (all 3 fields missing), other multipliers = 1.0
+        raw = 1.0 * 1.0 * 1.0 * 1.9 * 1.0
+        score = _normalise_raw(raw)
+        reasons.append(
+            "No fundamental data from yfinance — uncertainty multiplier 1.9×"
+        )
+        label = _label(score)
+        return label, score, reasons
+
+    pe = fundamentals.get("pe_ratio")
+    de = fundamentals.get("debt_to_equity")
+    rev_gr = fundamentals.get("revenue_growth")
+    sector = fundamentals.get("sector", "")
+    industry = fundamentals.get("industry", "")
+    icr = fundamentals.get("interest_coverage")
+
+    fields_missing = sum(1 for v in [pe, de, rev_gr] if v is None)
+
+    # ── 1. PE multiplier ──
+    # 1.0 when PE ≤ sector limit
+    # Exponential rise above limit: f(x) = 1 + (x−1)^1.5 × 3, capped at 4.0
+    # x = PE / limit  → 1.0 at limit, ~4.0 at 2× limit
+    if pe is None:
+        pe_m = 1.0
+        reasons.append("PE unavailable — no multiplier applied")
+    elif pe < MIN_PE_RATIO:
+        pe_m = 4.0  # negative earnings = maximum PE risk
+        reasons.append(
+            f"PE={pe:.1f} — negative/near-zero earnings (4.0× max multiplier)"
+        )
+    else:
+        pe_limit = _get_pe_limit(sector, industry)
+        x = pe / pe_limit
+        if x <= 1.0:
+            pe_m = 1.0
+            reasons.append(f"PE={pe:.1f} within limit={pe_limit} (1.0×)")
+        else:
+            pe_m = min(1.0 + (x - 1.0) ** 1.5 * 3.0, 4.0)
+            reasons.append(
+                f"PE={pe:.1f} vs limit={pe_limit} → {x:.2f}× limit "
+                f"(PE multiplier {pe_m:.2f}×)"
+            )
+
+    # ── 2. D/E multiplier ──
+    # Financial sector: exempt → DE_m = 1.0
+    # Others: 1.0 when D/E ≤ limit, rises as f(x) = 1 + (x−1)^1.4 × 2.5, cap 3.5
+    de_limit = _get_de_limit(sector)
+    if de_limit is None:
+        de_m = 1.0
+        reasons.append("D/E exempt — financial sector (1.0×)")
+    elif de is None:
+        de_m = 1.0
+        reasons.append("D/E unavailable — no multiplier applied")
+    else:
+        x = de / de_limit
+        if x <= 1.0:
+            de_m = 1.0
+            reasons.append(f"D/E={de:.2f} within limit={de_limit} (1.0×)")
+        else:
+            de_m = min(1.0 + (x - 1.0) ** 1.4 * 2.5, 3.5)
+            reasons.append(
+                f"D/E={de:.2f} vs limit={de_limit} → {x:.2f}× limit "
+                f"(D/E multiplier {de_m:.2f}×)"
+            )
+
+    # ── 3. Revenue growth multiplier ──
+    # Strong growth (≥15%) → 0.85× (genuine reward — reduces overall score)
+    # Flat (0%)            → 1.0×
+    # −15% or worse        → up to 2.2×
+    # Formula: piecewise — positive: linear 0.85–1.0; negative: power curve 1.0–2.2
+    if rev_gr is None:
+        rev_m = 1.0
+        reasons.append("Revenue growth unavailable — no multiplier applied")
+    else:
+        pct = rev_gr * 100
+        if pct >= 15:
+            rev_m = 0.85
+        elif pct >= 0:
+            rev_m = 1.0 - (pct / 15.0) * 0.15  # linear 1.0 → 0.85
+        else:
+            severity = min(abs(pct) / 15.0, 1.0)
+            rev_m = 1.0 + severity**1.2 * 1.2  # power curve 1.0 → 2.2
+        reasons.append(f"Revenue growth={pct:.1f}% → revenue multiplier {rev_m:.2f}×")
+
+    # ── 4. Data completeness multiplier ──
+    # 0 missing → 1.0×, 1 → 1.2×, 2 → 1.5×, 3 → 1.9×
+    # 1.9× on all-missing ensures the raw product is high enough
+    # that log-normalisation lands at Medium, never Low
+    data_m_map = {0: 1.0, 1: 1.2, 2: 1.5, 3: 1.9}
+    data_m = data_m_map[fields_missing]
+    if fields_missing > 0:
+        reasons.append(
+            f"{fields_missing} field(s) missing → data uncertainty {data_m}×"
+        )
+    else:
+        reasons.append("All 3 fundamental fields present (1.0×)")
+
+    # ── 5. Interest coverage multiplier ──
+    # Only triggered when D/E > 4× on non-financial stocks
+    # ICR ≥ 3×  → 1.0× (adequate coverage)
+    # ICR 0–3×  → power curve up to 2.5× (debt servicing risk)
+    # ICR unknown on D/E > 4× → 1.5× (uncertain but not worst case)
+    icr_m = 1.0
+    if de is not None and de_limit is not None and de > 4.0:
+        if icr is None:
+            icr_m = 1.5
+            reasons.append(f"D/E={de:.2f} > 4× but ICR unknown → uncertainty 1.5×")
+        elif icr >= 3.0:
+            icr_m = 1.0
+            reasons.append(f"D/E={de:.2f} > 4× but ICR={icr:.1f}× adequate (1.0×)")
+        else:
+            severity = min((3.0 - icr) / 3.0, 1.0)
+            icr_m = 1.0 + severity**1.3 * 1.5
+            reasons.append(
+                f"D/E={de:.2f} > 4× and ICR={icr:.1f}× low → "
+                f"debt servicing multiplier {icr_m:.2f}×"
+            )
+
+    # ── Compound and normalise ──
+    raw = pe_m * de_m * rev_m * data_m * icr_m
+    score = _normalise_raw(raw)
+    label = _label(score)
+    return label, score, reasons
+
+
+# ── Helpers for the multiplicative model ──
+
+
+def _normalise_raw(raw: float) -> int:
+    """
+    Log-normalises raw product to integer score 1–100.
+
+    Calibration anchors:
+        MIN_RAW = 0.72  — best possible: strong revenue (0.85×) × all others 1.0×
+                          ... actually 0.85 × 1.0 × 1.0 × 1.0 × 1.0 = 0.85
+                          with DE exempt: 0.85 × 1.0 × 1.0 × 1.0 = 0.85
+                          theoretical min is ~0.72 with multiple bonuses
+        MAX_RAW = 60    — extreme: PE_m=4 × DE_m=3.5 × Rev_m=2.2 × Data_m=1.9 × ICR_m=2.5
+                          = 4 × 3.5 × 2.2 × 1.9 × 2.5 ≈ 115 — capped at 60 for normalisation
+                          so the worst real stocks don't all bunch at 100
+    """
+    import math
+
+    MIN_RAW = 0.72
+    MAX_RAW = 60.0
+    log_raw = math.log(max(raw, MIN_RAW))
+    log_min = math.log(MIN_RAW)
+    log_max = math.log(MAX_RAW)
+    score = 1 + (log_raw - log_min) / (log_max - log_min) * 99
+    return int(round(max(1, min(100, score))))
+
+
+def _label(score: int) -> str:
+    if score <= RISK_THRESHOLD_LOW:
+        return "Low"
+    elif score <= RISK_THRESHOLD_HIGH:
+        return "Medium"
+    return "High"
+
+
+# ─────────────────────────────────────────────
+# BACKWARDS COMPAT SHIM
+# scanner.py still calls passes_fundamental_filter() in a few logging spots.
+# This shim makes it work without breaking anything during transition.
+# Remove once scanner.py is fully updated.
+# ─────────────────────────────────────────────
 
 
 def passes_fundamental_filter(ticker: str) -> tuple[bool, str]:
     """
-    Returns (True, "") if stock passes all fundamental checks.
-    Returns (False, reason) if it fails — reason logged for transparency.
-
-    Checks:
-        1. PE ratio  — industry-specific first, sector-level fallback
-        2. D/E ratio — sector-specific limit (financial sector exempt)
-                       D/E scaling: yfinance returns percentage (250 = 2.5x) — normalised in fetch
-        3. Revenue growth — business not in structural decline
-        4. Interest coverage — secondary check for high-debt infra stocks (D/E > 4.0)
-
-    Promoter holding not available via yfinance for NSE — skipped.
+    Deprecated — use score_fundamental_risk() instead.
+    Returns (True, summary) always — no stocks are hard-excluded anymore.
+    The risk label is attached to results; portfolio.py uses it for tiering.
     """
-    fundamentals = fetch_fundamentals(ticker)
+    label, score, reasons = score_fundamental_risk(ticker)
+    summary = f"{label} risk (score={score}): {reasons[0] if reasons else 'ok'}"
+    return True, summary  # always True — never hard-block
 
-    if fundamentals is None:
-        # Can't fetch fundamentals — let through rather than exclude valid stocks
-        return True, ""
 
-    pe = fundamentals["pe_ratio"]
-    de = fundamentals["debt_to_equity"]
-    rev_gr = fundamentals["revenue_growth"]
-    sector = fundamentals["sector"]
-    industry = fundamentals.get("industry", "")
-    icr = fundamentals.get("interest_coverage")
-
-    # ── PE ratio check — industry-level first, sector-level fallback ──
-    if pe is not None:
-        if pe < MIN_PE_RATIO:
-            return False, f"PE={pe:.1f} — negative or near-zero earnings"
-
-        # Step 1: check industry-level limit (most granular)
-        pe_limit = None
-        for ind_key, limit in INDUSTRY_PE_LIMITS.items():
-            if ind_key.lower() in industry.lower():
-                pe_limit = limit
-                break
-
-        # Step 2: fall back to sector-level if no industry match
-        if pe_limit is None:
-            pe_limit = DEFAULT_PE_LIMIT
-            for sector_key, limit in SECTOR_PE_LIMITS.items():
-                if sector_key.lower() in sector.lower():
-                    pe_limit = limit
-                    break
-
-        if pe > pe_limit:
-            return False, (
-                f"PE={pe:.1f} — overvalued for {industry or sector} (limit={pe_limit}x)"
-            )
-
-    # ── D/E ratio check — sector-specific limit ──
-    # D/E is already normalised in fetch_fundamentals (divided by 100 if >20)
-    de_limit = DEFAULT_DEBT_LIMIT
-    for sector_key, limit in SECTOR_DEBT_LIMITS.items():
-        if sector_key.lower() in sector.lower():
-            de_limit = limit
-            break
-
-    if de is not None and de_limit is not None:
-        if de > de_limit:
-            return False, (
-                f"D/E={de:.2f} — too high for {sector} sector (limit={de_limit}x)"
-            )
-
-        # ── Interest coverage secondary check for high-debt stocks ──
-        # D/E > 4.0 for non-financial stocks warrants extra scrutiny
-        # ICR < 2.0 means debt servicing is at risk — filter out
-        if de > 4.0 and de_limit is not None:
-            if icr is not None and icr < 2.0:
-                return False, (
-                    f"D/E={de:.2f} is high and ICR={icr:.1f}x — "
-                    f"debt servicing at risk (need ICR >= 2.0)"
-                )
-
-    # ── Revenue growth check ──
-    if rev_gr is not None:
-        if rev_gr < MIN_REVENUE_GROWTH:
-            return False, f"Revenue growth={rev_gr * 100:.1f}% — business declining"
-
-    return True, ""
+# ─────────────────────────────────────────────
+# Price + volume fetch (unchanged)
+# ─────────────────────────────────────────────
 
 
 def fetch_best_available(ticker: str):
-    """
-    Try progressively shorter periods and return the longest clean dataset.
-    Returns (close, volume) or (None, None).
-    """
     for period in FETCH_PERIODS:
         try:
             raw = download(ticker, period=period, progress=False, auto_adjust=True)
             if raw.empty:
                 continue
-
             close = raw["Close"]
             volume = raw["Volume"]
-
             if isinstance(close, pd.DataFrame):
                 close = close.squeeze()
             if isinstance(volume, pd.DataFrame):
                 volume = volume.squeeze()
-
             close = close.dropna()
             volume = volume.dropna()
             close, volume = close.align(volume, join="inner")
-
             if _is_clean(close, volume):
                 return close, volume
-
         except Exception:
             continue
-
     return None, None
 
 

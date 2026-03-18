@@ -96,11 +96,8 @@ def _save_csv(df: pd.DataFrame, path: str, label: str):
 
 def _commit_logs():
     """
-    Commits accuracy_log.csv and prediction_log.csv to the main branch.
-
-    Important: consolidate.py switches HEAD to results-cache branch
-    during its run. This function must explicitly checkout main first
-    so the logs land on the right branch, not results-cache.
+    Commits accuracy_log.csv and prediction_log.csv to main.
+    Called after accuracy check completes.
     """
     if not os.getenv("GITHUB_ACTIONS"):
         print("  ℹ Not in GitHub Actions — skipping log commit.")
@@ -111,22 +108,32 @@ def _commit_logs():
         branch = os.getenv("GITHUB_REF_NAME", "main")
         remote = f"https://x-access-token:{token}@github.com/{repo}.git"
 
+        workspace = os.getenv("GITHUB_WORKSPACE", "")
+        acc_log_abs = (
+            os.path.join(workspace, ACCURACY_LOG) if workspace else ACCURACY_LOG
+        )
+        pred_log_abs = (
+            os.path.join(workspace, PREDICTION_LOG) if workspace else PREDICTION_LOG
+        )
+
         subprocess.run(
             ["git", "config", "user.email", "actions@github.com"], check=True
         )
         subprocess.run(["git", "config", "user.name", "GitHub Actions"], check=True)
 
-        # Always return to main branch first — consolidate.py may have
-        # switched HEAD to results-cache during the same job
+        # Always return to main first
         subprocess.run(["git", "checkout", branch], check=True)
 
-        # Pull latest main so we don't create a conflict on push
-        subprocess.run(
-            ["git", "pull", remote, branch, "--rebase"], check=True, capture_output=True
+        pull = subprocess.run(
+            ["git", "pull", remote, branch, "--rebase"], capture_output=False
         )
+        if pull.returncode != 0:
+            print(
+                f"  ⚠ git pull failed (returncode {pull.returncode}) — skipping commit"
+            )
+            return
 
-        subprocess.run(["git", "add", ACCURACY_LOG, PREDICTION_LOG], check=True)
-
+        subprocess.run(["git", "add", acc_log_abs, pred_log_abs], check=True)
         result = subprocess.run(
             ["git", "diff", "--cached", "--quiet"], capture_output=True
         )
@@ -364,6 +371,17 @@ def _commit_prediction_log():
         branch = os.getenv("GITHUB_REF_NAME", "main")
         remote = f"https://x-access-token:{token}@github.com/{repo}.git"
 
+        # Use workspace-absolute path — git checkout switches can affect
+        # relative path resolution
+        workspace = os.getenv("GITHUB_WORKSPACE", "")
+        pred_log_abs = (
+            os.path.join(workspace, PREDICTION_LOG) if workspace else PREDICTION_LOG
+        )
+
+        if not os.path.exists(pred_log_abs):
+            print(f"  ⚠ {pred_log_abs} not found — nothing to commit.")
+            return
+
         subprocess.run(
             ["git", "config", "user.email", "actions@github.com"], check=True
         )
@@ -371,11 +389,19 @@ def _commit_prediction_log():
 
         # Return to main — consolidate.py may have switched to results-cache
         subprocess.run(["git", "checkout", branch], check=True)
-        subprocess.run(
-            ["git", "pull", remote, branch, "--rebase"], check=True, capture_output=True
-        )
 
-        subprocess.run(["git", "add", PREDICTION_LOG], check=True)
+        # Pull latest — show errors if rebase fails
+        pull = subprocess.run(
+            ["git", "pull", remote, branch, "--rebase"],
+            capture_output=False,  # show output so failures are visible in Actions log
+        )
+        if pull.returncode != 0:
+            print(
+                f"  ⚠ git pull failed (returncode {pull.returncode}) — skipping commit"
+            )
+            return
+
+        subprocess.run(["git", "add", pred_log_abs], check=True)
         result = subprocess.run(
             ["git", "diff", "--cached", "--quiet"], capture_output=True
         )
@@ -386,6 +412,8 @@ def _commit_prediction_log():
             )
             subprocess.run(["git", "push", remote, f"HEAD:{branch}"], check=True)
             print(f"  ✓ Prediction log committed to {branch}")
+        else:
+            print("  ℹ Prediction log unchanged — nothing to commit.")
 
     except subprocess.CalledProcessError as e:
         print(f"  ⚠ Prediction log commit failed: {e}")

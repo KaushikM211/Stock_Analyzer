@@ -1,4 +1,7 @@
 Scan_Date,Run_Time,Run_Label,Stock,Company_Name,Predicted_Buy_Date,Predicted_Buy_Price
+2026-03-18,15:44,Manual Run,PNB.NS,Punjab National Bank,19 Mar 2026,113.16
+2026-03-18,15:44,Manual Run,KPIL.NS,Kalpataru Projects International Limited,19 Mar 2026,1069.1
+2026-03-18,15:44,Manual Run,SCHAEFFLER.NS,Schaeffler India Limited,20 Mar 2026,4051.23
 2026-03-18,17:04,Force Run,MCX.NS,Multi Commodity Exchange of India Limited,13 Apr 2026,2590.09
 2026-03-18,17:04,Force Run,SBIN.NS,State Bank of India,19 Mar 2026,1069.7
 2026-03-18,17:04,Force Run,ASAHIINDIA.NS,Asahi India Glass Limited,19 Mar 2026,864.63

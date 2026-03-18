@@ -95,29 +95,56 @@ def _save_csv(df: pd.DataFrame, path: str, label: str):
 
 
 def _commit_logs():
-    """Commits accuracy_log.csv and prediction_log.csv to repo."""
+    """
+    Commits accuracy_log.csv and prediction_log.csv to the main branch.
+
+    Important: consolidate.py switches HEAD to results-cache branch
+    during its run. This function must explicitly checkout main first
+    so the logs land on the right branch, not results-cache.
+    """
     if not os.getenv("GITHUB_ACTIONS"):
+        print("  ℹ Not in GitHub Actions — skipping log commit.")
         return
     try:
         token = os.getenv("GITHUB_TOKEN", "")
         repo = os.getenv("GITHUB_REPOSITORY", "")
         branch = os.getenv("GITHUB_REF_NAME", "main")
+        remote = f"https://x-access-token:{token}@github.com/{repo}.git"
+
         subprocess.run(
             ["git", "config", "user.email", "actions@github.com"], check=True
         )
         subprocess.run(["git", "config", "user.name", "GitHub Actions"], check=True)
+
+        # Always return to main branch first — consolidate.py may have
+        # switched HEAD to results-cache during the same job
+        subprocess.run(["git", "checkout", branch], check=True)
+
+        # Pull latest main so we don't create a conflict on push
+        subprocess.run(
+            ["git", "pull", remote, branch, "--rebase"], check=True, capture_output=True
+        )
+
         subprocess.run(["git", "add", ACCURACY_LOG, PREDICTION_LOG], check=True)
+
         result = subprocess.run(
             ["git", "diff", "--cached", "--quiet"], capture_output=True
         )
         if result.returncode != 0:
             subprocess.run(
-                ["git", "commit", "-m", f"accuracy + prediction log {date.today()}"],
+                [
+                    "git",
+                    "commit",
+                    "-m",
+                    f"accuracy + prediction log {date.today()} [skip ci]",
+                ],
                 check=True,
             )
-            remote = f"https://x-access-token:{token}@github.com/{repo}.git"
             subprocess.run(["git", "push", remote, f"HEAD:{branch}"], check=True)
             print(f"  ✓ Logs committed to {branch}")
+        else:
+            print("  ℹ No changes to accuracy/prediction logs — nothing to commit.")
+
     except subprocess.CalledProcessError as e:
         print(f"  ⚠ Git commit failed: {e}")
 
@@ -300,20 +327,68 @@ def log_predictions(results: dict, run_label: str) -> None:
     if new_rows:
         new_df = pd.DataFrame(new_rows)
         pred_log = pd.concat([pred_log, new_df], ignore_index=True)
-        # Deduplicate — same stock from same run should never appear twice
-        pred_log = pred_log.drop_duplicates(
-            subset=["Scan_Date", "Run_Time", "Stock"], keep="last"
-        )
-        # Trim to last 60 days — convergence only needs recent runs,
-        # older predictions don't improve the signal and just bloat the file
-        cutoff = (date.today() - timedelta(days=60)).isoformat()
-        pred_log = pred_log[pred_log["Scan_Date"] >= cutoff].reset_index(drop=True)
+        # Keep only the MOST RECENT prediction per stock
+        # Earlier runs' predictions are superseded by later ones —
+        # Thursday's 15:00 run is more accurate than Thursday's 9:20 run
+        # Friday's accuracy check only needs the latest prediction per stock
+        pred_log = pred_log.sort_values(
+            ["Scan_Date", "Run_Time"], ascending=True
+        ).drop_duplicates(subset=["Stock"], keep="last")
+        pred_log = pred_log.reset_index(drop=True)
         _save_csv(pred_log, PREDICTION_LOG, "Prediction log")
         print(
             f"  📝 Logged {len(new_rows)} predictions from {run_label} (source: {source})"
         )
+        # Commit immediately — each run is a fresh VM, must push or lose data
+        _commit_prediction_log()
     else:
         print(f"  ℹ No predictions to log from {run_label}")
+
+
+def _commit_prediction_log():
+    """
+    Commits prediction_log.csv to main after every scan run.
+
+    Why after every run and not just EOD:
+        GitHub Actions spins up a fresh VM per run — there is no shared
+        local state between the 9 daily runs. Each run must commit its
+        predictions immediately or they are lost when the VM shuts down.
+        The accuracy check on the next day reads from main, so every
+        run's predictions must land on main before the VM dies.
+    """
+    if not os.getenv("GITHUB_ACTIONS"):
+        return
+    try:
+        token = os.getenv("GITHUB_TOKEN", "")
+        repo = os.getenv("GITHUB_REPOSITORY", "")
+        branch = os.getenv("GITHUB_REF_NAME", "main")
+        remote = f"https://x-access-token:{token}@github.com/{repo}.git"
+
+        subprocess.run(
+            ["git", "config", "user.email", "actions@github.com"], check=True
+        )
+        subprocess.run(["git", "config", "user.name", "GitHub Actions"], check=True)
+
+        # Return to main — consolidate.py may have switched to results-cache
+        subprocess.run(["git", "checkout", branch], check=True)
+        subprocess.run(
+            ["git", "pull", remote, branch, "--rebase"], check=True, capture_output=True
+        )
+
+        subprocess.run(["git", "add", PREDICTION_LOG], check=True)
+        result = subprocess.run(
+            ["git", "diff", "--cached", "--quiet"], capture_output=True
+        )
+        if result.returncode != 0:
+            subprocess.run(
+                ["git", "commit", "-m", f"prediction log {date.today()} [skip ci]"],
+                check=True,
+            )
+            subprocess.run(["git", "push", remote, f"HEAD:{branch}"], check=True)
+            print(f"  ✓ Prediction log committed to {branch}")
+
+    except subprocess.CalledProcessError as e:
+        print(f"  ⚠ Prediction log commit failed: {e}")
 
 
 # ─────────────────────────────────────────────

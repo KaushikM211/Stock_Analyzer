@@ -75,6 +75,43 @@ def _extract_stock_data(portfolios: list) -> dict[str, dict]:
     return stocks
 
 
+def _extract_stock_data_from_pool(results: dict) -> dict[str, dict]:
+    """
+    Extracts stock data from results["_full_pool"] — all stocks that passed
+    the ROI threshold, not just the ~41 that made it into portfolio combos.
+    Falls back to portfolio extraction if _full_pool not present.
+    """
+    import pandas as pd
+
+    stocks = {}
+
+    full_pool = results.get("_full_pool") if isinstance(results, dict) else None
+
+    if full_pool is not None:
+        rows = (
+            full_pool.to_dict(orient="records")
+            if isinstance(full_pool, pd.DataFrame)
+            else full_pool
+        )
+        for row in rows:
+            ticker = row.get("Stock")
+            price = row.get("Buy_Price")
+            if not ticker or not price:
+                continue
+            stocks[ticker] = {
+                "price": price,
+                "roi": row.get("After_Tax_ROI_%", 0),
+                "company": row.get("Company_Name", ticker.replace(".NS", "")),
+                "sell": row.get("Best_Sell_Date", ""),
+                "risk_label": row.get("Fundamental_Risk", "Unknown"),
+                "risk_score": row.get("Risk_Score", None),
+            }
+        return stocks
+
+    # Fallback — extract from portfolios (old behaviour)
+    return _extract_stock_data([])  # returns empty, caller handles
+
+
 def _best_combo_roi(portfolios: list) -> tuple[float, dict | None]:
     """Returns (best_roi, best_combo) from a portfolio list."""
     best_roi = -999.0
@@ -125,12 +162,24 @@ def save_run_results(
             }
         )
 
+    import pandas as pd
+
+    full_pool = results.get("_full_pool")
+    serialised_full_pool = (
+        full_pool.to_dict(orient="records")
+        if isinstance(full_pool, pd.DataFrame)
+        else list(full_pool)
+        if full_pool is not None
+        else []
+    )
+
     data = {
         "date": date.today().isoformat(),
         "run_label": run_label,
         "run_time": now.strftime("%H:%M"),
         "results": serialised_results,
         "portfolios": serialised_portfolios,
+        "full_pool": serialised_full_pool,  # all stocks that passed ROI threshold
     }
 
     with open(filename, "w") as fh:
@@ -198,7 +247,12 @@ def _push_to_cache_branch(filepath: str, now: datetime):
 
         subprocess.run(["git", "add", "cache/"], check=True)
         subprocess.run(
-            ["git", "commit", "-m", f"scan cache {now.strftime('%Y-%m-%d %H:%M')}"],
+            [
+                "git",
+                "commit",
+                "-m",
+                f"scan cache {now.strftime('%Y-%m-%d %H:%M')} [skip ci]",
+            ],
             check=True,
         )
         remote_url = f"https://x-access-token:{token}@github.com/{repo}.git"
@@ -328,15 +382,39 @@ def check_and_alert(
         if roi > best_prev_roi:
             best_prev_roi = roi
             best_prev_combo = combo  # noqa: F841
-        for ticker, data in _extract_stock_data(run["portfolios"]).items():
-            if (
-                ticker not in best_prev_prices
-                or data["price"] < best_prev_prices[ticker]["price"]
-            ):
-                best_prev_prices[ticker] = data
 
-    # Current run stock data
-    curr_stocks = _extract_stock_data(current_portfolios)
+        # Use full_pool if available (all stocks that passed ROI), else fall back to portfolios
+        if run.get("full_pool"):
+            for row in run["full_pool"]:
+                ticker = row.get("Stock")
+                price = row.get("Buy_Price")
+                if not ticker or not price:
+                    continue
+                if (
+                    ticker not in best_prev_prices
+                    or price < best_prev_prices[ticker]["price"]
+                ):
+                    best_prev_prices[ticker] = {
+                        "price": price,
+                        "roi": row.get("After_Tax_ROI_%", 0),
+                        "company": row.get("Company_Name", ""),
+                        "sell": row.get("Best_Sell_Date", ""),
+                        "risk_label": row.get("Fundamental_Risk", "Unknown"),
+                        "risk_score": row.get("Risk_Score", None),
+                    }
+        else:
+            for ticker, data in _extract_stock_data(run["portfolios"]).items():
+                if (
+                    ticker not in best_prev_prices
+                    or data["price"] < best_prev_prices[ticker]["price"]
+                ):
+                    best_prev_prices[ticker] = data
+
+    # Current run stock data — use full pool (all 81+) not just portfolio stocks (41)
+    curr_stocks = _extract_stock_data_from_pool(current_results)
+    if not curr_stocks:
+        # Fallback to portfolio extraction
+        curr_stocks = _extract_stock_data(current_portfolios)
     curr_roi, curr_best_combo = _best_combo_roi(current_portfolios)
 
     # ── Stock-wise comparison ──

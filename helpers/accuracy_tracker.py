@@ -115,19 +115,50 @@ def _commit_logs():
 def _fetch_actual_price(ticker: str, target_date: date) -> tuple[float | None, str]:
     """
     Fetches actual closing price on or after target_date.
-    Returns (price, actual_date_used).
-    If market was closed on target_date, returns next available close.
+
+    Uses yf.Ticker().history() — avoids multi-level column issues
+    that affect yf.download() with start/end parameters.
+
+    Handles all yfinance return shapes:
+        - Series (normal case)
+        - DataFrame with single column (multi-ticker style)
+        - DataFrame with multi-level columns
     """
     try:
         start = target_date.isoformat()
-        end = (target_date + timedelta(days=5)).isoformat()
-        data = yf.download(
-            ticker, start=start, end=end, progress=False, auto_adjust=True
+        end = (target_date + timedelta(days=7)).isoformat()
+
+        data = yf.Ticker(ticker).history(
+            start=start,
+            end=end,
+            auto_adjust=True,
         )
+
         if data.empty:
             return None, ""
+
+        # Strip timezone — NSE data comes with IST timezone
+        if data.index.tz is not None:
+            data.index = data.index.tz_localize(None)
+
+        # Handle multi-level columns if present
+        if isinstance(data.columns, pd.MultiIndex):
+            data.columns = data.columns.get_level_values(0)
+
+        close = data["Close"]
+
+        # squeeze() handles both Series and single-column DataFrame
+        if isinstance(close, pd.DataFrame):
+            close = close.iloc[:, 0]
+
+        close = close.dropna()
+        if close.empty:
+            return None, ""
+
+        price = round(float(close.iloc[0]), 2)
         actual_date = data.index[0].strftime("%Y-%m-%d")
-        return round(float(data["Close"].iloc[0]), 2), actual_date
+        return price, actual_date
+
     except Exception as e:
         print(f"  ⚠ Could not fetch {ticker} for {target_date}: {e}")
         return None, ""

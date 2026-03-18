@@ -2,18 +2,18 @@ name: NSE Stock Analysis
 
 on:
   schedule:
-    # Runs every 45 mins, Mon–Fri, 9:00 AM – 3:00 PM IST
-    # = 3:30 AM – 9:30 AM UTC
-    # main.py checks if NSE is open — exits cleanly if holiday/closed
-    - cron: "30 3 * * 1-5"  # 09:00 IST — daily baseline
-    - cron: "15 4 * * 1-5"  # 09:45 IST
+    # Mon–Fri schedule (all times IST, converted to UTC)
+    # First run at 9:20 AM — market opens 9:15 AM, 5 mins of price action
+    # available before accuracy check. Scan follows immediately after.
+    - cron: "50 3 * * 1-5"  # 09:20 IST — accuracy check + daily baseline
+    - cron: "15 4 * * 1-5"  # 10:00 IST
     - cron: "0 5 * * 1-5"   # 10:30 IST
     - cron: "45 5 * * 1-5"  # 11:15 IST
     - cron: "30 6 * * 1-5"  # 12:00 IST
     - cron: "15 7 * * 1-5"  # 12:45 IST
     - cron: "0 8 * * 1-5"   # 13:30 IST
     - cron: "45 8 * * 1-5"  # 14:15 IST
-    - cron: "30 9 * * 1-5"  # 15:00 IST — last run + EOD accuracy check
+    - cron: "30 9 * * 1-5"  # 15:00 IST
 
   workflow_dispatch:
     inputs:
@@ -72,7 +72,7 @@ jobs:
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             echo "run_type=${{ github.event.inputs.run_type }}" >> $GITHUB_OUTPUT
             echo "run_label=${{ github.event.inputs.run_label }}" >> $GITHUB_OUTPUT
-            echo "is_eod=false" >> $GITHUB_OUTPUT
+            echo "is_first_run=false"                            >> $GITHUB_OUTPUT
           else
             HOUR=$(date -u +%-H)
             MIN=$(date -u +%-M)
@@ -86,22 +86,34 @@ jobs:
               IST_LABEL="${IST_H}:${IST_M} IST"
             fi
 
-            # 9:00 AM IST = UTC 210 mins → first run of day
-            if [ "$UTC_TOTAL" -le "210" ]; then
+            # 9:20 AM IST = UTC 230 mins → first run of day
+            # Accuracy check runs as a step BEFORE the scan in this job
+            if [ "$UTC_TOTAL" -le "233" ]; then
               echo "run_type=daily"               >> $GITHUB_OUTPUT
               echo "run_label=Daily ${IST_LABEL}" >> $GITHUB_OUTPUT
-              echo "is_eod=false"                 >> $GITHUB_OUTPUT
-            # 15:00 IST = UTC 570 mins → last run of day, market just closed
-            elif [ "$UTC_TOTAL" -ge "568" ]; then
-              echo "run_type=intraday"             >> $GITHUB_OUTPUT
-              echo "run_label=Live ${IST_LABEL}"   >> $GITHUB_OUTPUT
-              echo "is_eod=true"                   >> $GITHUB_OUTPUT
+              echo "is_first_run=true"            >> $GITHUB_OUTPUT
             else
               echo "run_type=intraday"             >> $GITHUB_OUTPUT
               echo "run_label=Live ${IST_LABEL}"   >> $GITHUB_OUTPUT
-              echo "is_eod=false"                  >> $GITHUB_OUTPUT
+              echo "is_first_run=false"            >> $GITHUB_OUTPUT
             fi
           fi
+
+      - name: Run accuracy check
+        # Runs BEFORE the scan on the 9:20 AM job only.
+        # Market has been open ~5 mins — day Low is already forming.
+        # Validates yesterday's predictions for today against today's intraday Low.
+        # You still have the full trading day ahead to act on the signal.
+        if: ${{ steps.detect.outputs.is_first_run == 'true' }}
+        env:
+          GMAIL_SENDER:      ${{ secrets.GMAIL_SENDER }}
+          GMAIL_PASSWORD:    ${{ secrets.GMAIL_PASSWORD }}
+          GMAIL_RECIPIENT:   ${{ secrets.GMAIL_RECIPIENT }}
+          GITHUB_TOKEN:      ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_WORKSPACE:  ${{ github.workspace }}
+          SCAN_RESULTS_DIR:  /tmp/scan_results
+        run: uv run python main.py --accuracy
 
       - name: Run stock analyzer
         env:
@@ -125,19 +137,3 @@ jobs:
           else
             uv run python main.py --intraday "$RUN_LABEL"
           fi
-
-      - name: Run EOD accuracy check
-        # Only runs on the 15:00 IST job — after NSE closes at 3:30 PM
-        # Close prices are available from yfinance ~15–20 mins after close
-        # This ensures we're comparing predicted price vs actual close,
-        # not intraday prices which may not reflect final settlement
-        if: ${{ steps.detect.outputs.is_eod == 'true' }}
-        env:
-          GMAIL_SENDER:      ${{ secrets.GMAIL_SENDER }}
-          GMAIL_PASSWORD:    ${{ secrets.GMAIL_PASSWORD }}
-          GMAIL_RECIPIENT:   ${{ secrets.GMAIL_RECIPIENT }}
-          GITHUB_TOKEN:      ${{ secrets.GITHUB_TOKEN }}
-          GITHUB_REPOSITORY: ${{ github.repository }}
-          GITHUB_WORKSPACE:  ${{ github.workspace }}
-          SCAN_RESULTS_DIR:  /tmp/scan_results
-        run: uv run python main.py --eod

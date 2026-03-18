@@ -730,7 +730,7 @@ def _build_accuracy_html(
             <td style="padding:7px; font-weight:bold;">{r["Stock"]}</td>
             <td style="padding:7px; color:#555;">{r["Company_Name"]}</td>
             <td style="padding:7px;">&#8377;{r["Predicted_Buy_Price"]}</td>
-            <td style="padding:7px; font-weight:bold;">&#8377;{r["Actual_Close"]}</td>
+            <td style="padding:7px; font-weight:bold;">&#8377;{r["Actual_Open"]}</td>
             <td style="padding:7px; color:{err_color}; font-weight:bold;">
                 {dir_icon} {err:+.2f}%
             </td>
@@ -791,7 +791,7 @@ def _build_accuracy_html(
                 <th style="padding:7px;">Ticker</th>
                 <th style="padding:7px;">Company</th>
                 <th style="padding:7px;">Predicted Price</th>
-                <th style="padding:7px;">Actual Close</th>
+                <th style="padding:7px;">Actual Open</th>
                 <th style="padding:7px;">Error %</th>
                 <th style="padding:7px;">Scan Date</th>
             </tr>

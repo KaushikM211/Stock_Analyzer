@@ -41,7 +41,7 @@ LOG_COLUMNS = [
     "Company_Name",
     "Predicted_Buy_Date",
     "Predicted_Buy_Price",
-    "Actual_Close",
+    "Actual_Open",  # day's Low on predicted buy date — achievable intraday entry
     "Actual_Price_Date",
     "Error_Pct",
     "Direction",
@@ -68,7 +68,20 @@ PRED_COLUMNS = [
 def _load_csv(path: str, columns: list) -> pd.DataFrame:
     if os.path.exists(path):
         try:
-            return pd.read_csv(path)
+            df = pd.read_csv(path)
+            # Handle column renames gracefully — migrate old names to new ones
+            rename_map = {
+                "Actual_Close": "Actual_Open",  # renamed when switched from close to open
+                "Actual_Low": "Actual_Open",  # renamed when switched from low to open
+            }
+            df = df.rename(
+                columns={k: v for k, v in rename_map.items() if k in df.columns}
+            )
+            # Add any missing columns with empty values
+            for col in columns:
+                if col not in df.columns:
+                    df[col] = ""
+            return df
         except Exception:
             pass
     return pd.DataFrame(columns=columns)
@@ -114,19 +127,25 @@ def _commit_logs():
 
 def _fetch_actual_price(ticker: str, target_date: date) -> tuple[float | None, str]:
     """
-    Fetches actual closing price on or after target_date.
+    Fetches the day's OPEN price on target_date (or next available trading day).
 
-    Uses yf.Ticker().history() — avoids multi-level column issues
-    that affect yf.download() with start/end parameters.
+    Why Open instead of Low or Close:
+        The accuracy check runs at 9:20 AM IST — 5 mins after market opens.
+        The opening price is:
+          1. Available immediately at market open
+          2. The actual price you'd pay if you act on the accuracy signal now
+          3. A clean, unambiguous reference — not a moving target like intraday Low
+          4. Reflects overnight sentiment and gap ups/downs
 
-    Handles all yfinance return shapes:
-        - Series (normal case)
-        - DataFrame with single column (multi-ticker style)
-        - DataFrame with multi-level columns
+        If predicted price ≈ open price → model was right, buy now.
+        If open is significantly higher → stock gapped up, entry may have passed.
+        If open is significantly lower → stock gapped down, even better entry.
+
+    Fetches up to 5 days forward to handle holidays and weekends.
     """
     try:
         start = target_date.isoformat()
-        end = (target_date + timedelta(days=7)).isoformat()
+        end = (target_date + timedelta(days=5)).isoformat()
 
         data = yf.Ticker(ticker).history(
             start=start,
@@ -137,27 +156,26 @@ def _fetch_actual_price(ticker: str, target_date: date) -> tuple[float | None, s
         if data.empty:
             return None, ""
 
-        # Strip timezone — NSE data comes with IST timezone
+        # Strip timezone
         if data.index.tz is not None:
             data.index = data.index.tz_localize(None)
 
-        # Handle multi-level columns if present
+        # Handle multi-level columns
         if isinstance(data.columns, pd.MultiIndex):
             data.columns = data.columns.get_level_values(0)
 
-        close = data["Close"]
+        # Use the first available trading day's OPEN price
+        open_price = data["Open"]
+        if isinstance(open_price, pd.DataFrame):
+            open_price = open_price.iloc[:, 0]
+        open_price = open_price.dropna()
 
-        # squeeze() handles both Series and single-column DataFrame
-        if isinstance(close, pd.DataFrame):
-            close = close.iloc[:, 0]
-
-        close = close.dropna()
-        if close.empty:
+        if open_price.empty:
             return None, ""
 
-        price = round(float(close.iloc[0]), 2)
-        actual_date = data.index[0].strftime("%Y-%m-%d")
-        return price, actual_date
+        actual_price = round(float(open_price.iloc[0]), 2)
+        actual_date = open_price.index[0].strftime("%Y-%m-%d")
+        return actual_price, actual_date
 
     except Exception as e:
         print(f"  ⚠ Could not fetch {ticker} for {target_date}: {e}")
@@ -280,6 +298,10 @@ def log_predictions(results: dict, run_label: str) -> None:
     if new_rows:
         new_df = pd.DataFrame(new_rows)
         pred_log = pd.concat([pred_log, new_df], ignore_index=True)
+        # Deduplicate — same stock from same run should never appear twice
+        pred_log = pred_log.drop_duplicates(
+            subset=["Scan_Date", "Run_Time", "Stock"], keep="last"
+        )
         _save_csv(pred_log, PREDICTION_LOG, "Prediction log")
         print(
             f"  📝 Logged {len(new_rows)} predictions from {run_label} (source: {source})"
@@ -300,10 +322,14 @@ def get_convergence(
 ) -> dict:
     """
     For a given stock, computes:
-      - Most predicted buy date (mode across all runs)
-      - Convergence score (% of runs that agree on that date)
+      - Most predicted buy date (mode across all DISTINCT runs)
+      - Convergence score (% of distinct runs that agree on that date)
       - Convergence label 🟢 / 🟡 / 🔴
       - Predicted price range (min/max across runs)
+
+    Distinct run = unique (Scan_Date, Run_Time) combination.
+    Deduplicates before counting so a stock logged twice in one run
+    doesn't inflate convergence artificially.
     """
     df = pred_log[pred_log["Stock"] == stock].copy()
     if as_of_date:
@@ -311,10 +337,13 @@ def get_convergence(
     if df.empty:
         return {}
 
+    # Deduplicate — keep one row per distinct run per stock
+    df = df.drop_duplicates(subset=["Scan_Date", "Run_Time", "Stock"])
+
     total_runs = len(df)
     date_counts = df["Predicted_Buy_Date"].value_counts()
     top_date = date_counts.index[0]
-    top_count = date_counts.iloc[0]
+    top_count = int(date_counts.iloc[0])
     convergence = top_count / total_runs
 
     if convergence >= CONVERGENCE_HIGH:
@@ -324,7 +353,6 @@ def get_convergence(
     else:
         label = "🔴 Low"
 
-    # Price range for the most agreed-upon date
     top_df = df[df["Predicted_Buy_Date"] == top_date]
     prices = pd.to_numeric(top_df["Predicted_Buy_Price"], errors="coerce").dropna()
 
@@ -422,28 +450,35 @@ def check_predictions(
     target_date: date | None = None,
 ) -> pd.DataFrame:
     """
-    Main entry point — called after every 30-min scan run.
+    Runs at 9:20 AM IST on the first job of the day.
 
-    Two phases:
-      Phase 1 — log_predictions() already called by main.py before this
-      Phase 2 — check if any predicted dates are due today or recent past
-                fetch actual prices, compute accuracy, send email
+    Finds all predictions in prediction_log.csv whose Predicted_Buy_Date
+    is TODAY (or the last 2 business days as a safety net for any missed runs),
+    fetches the day's Low price on that predicted date,
+    computes error vs predicted price, and sends accuracy email.
+
+    Why today's Low:
+        The accuracy check runs at 9:20 AM — market has been open 5 mins.
+        The model said "best buy today at ₹X". We check: was ₹X achievable
+        today? The day's Low is the cheapest intraday price — if predicted ≈ Low,
+        the model correctly identified today as the entry day and price.
+        You still have the full trading day ahead to place your order.
     """
     from helpers.alerts import send_accuracy_email
 
     if target_date is None:
         target_date = date.today()
 
-    # Window: today + last 3 business days (catches weekend/holiday gaps)
+    # Check today + last 2 business days as safety net for missed/weekend runs
     check_dates = set()
     d = target_date
-    for _ in range(4):
+    for _ in range(3):
         check_dates.add(d.strftime("%d %b %Y"))
         d = d - timedelta(days=1)
         while d.weekday() >= 5:
             d = d - timedelta(days=1)
 
-    print(f"\n  📊 Accuracy check — looking for predictions due: {sorted(check_dates)}")
+    print(f"\n  📊 Accuracy check — predictions due: {sorted(check_dates)}")
 
     pred_log = _load_csv(PREDICTION_LOG, PRED_COLUMNS)
     acc_log = _load_csv(ACCURACY_LOG, LOG_COLUMNS)
@@ -453,7 +488,6 @@ def check_predictions(
         print("  ℹ No prediction log yet — nothing to check.")
         return acc_log
 
-    # Find predictions due in our check window
     due = pred_log[pred_log["Predicted_Buy_Date"].isin(check_dates)]
     if due.empty:
         print(f"  ℹ No predictions due in window {sorted(check_dates)}")
@@ -470,7 +504,7 @@ def check_predictions(
         run_label = row["Run_Label"]
         company = row["Company_Name"]
 
-        # Skip if already checked this exact prediction
+        # Skip if already checked
         if not acc_log.empty:
             already = acc_log[
                 (acc_log["Stock"] == ticker)
@@ -481,9 +515,11 @@ def check_predictions(
             if not already.empty:
                 continue
 
-        actual_price, actual_date = _fetch_actual_price(ticker, target_date)
+        # Fetch day's Low on the PREDICTED date (not today if looking back)
+        pred_date_obj = pd.to_datetime(pred_date, format="%d %b %Y").date()
+        actual_price, actual_date = _fetch_actual_price(ticker, pred_date_obj)
         if actual_price is None:
-            print(f"  ⚠ {ticker}: no price found for {target_date}")
+            print(f"  ⚠ {ticker}: no price found for {pred_date}")
             continue
 
         error_pct = (actual_price - pred_price) / pred_price * 100
@@ -491,10 +527,8 @@ def check_predictions(
         within = abs(error_pct) <= ACCURACY_THRESHOLD
 
         note = ""
-        if pred_date != target_date.strftime("%d %b %Y"):
-            note = (
-                f"Predicted {pred_date} — checked on {target_date} (next trading day)"
-            )
+        if actual_date and actual_date != pred_date_obj.strftime("%Y-%m-%d"):
+            note = f"Checked on {actual_date} (next trading day after {pred_date})"
 
         new_records.append(
             {
@@ -505,7 +539,7 @@ def check_predictions(
                 "Company_Name": company,
                 "Predicted_Buy_Date": pred_date,
                 "Predicted_Buy_Price": pred_price,
-                "Actual_Close": actual_price,
+                "Actual_Open": actual_price,  # renamed from Actual_Close
                 "Actual_Price_Date": actual_date,
                 "Error_Pct": round(error_pct, 2),
                 "Direction": direction,
@@ -517,8 +551,8 @@ def check_predictions(
         status = "✓" if within else "✗"
         print(
             f"  {status} {ticker:20s} "
-            f"Pred: ₹{pred_price} ({run_label}) | "
-            f"Actual: ₹{actual_price} | "
+            f"Pred: ₹{pred_price} ({pred_date}) | "
+            f"Actual Low: ₹{actual_price} | "
             f"Error: {error_pct:+.2f}%"
         )
 
@@ -530,32 +564,23 @@ def check_predictions(
     acc_log = pd.concat([acc_log, new_df], ignore_index=True)
     _save_csv(acc_log, ACCURACY_LOG, "Accuracy log")
 
-    # ── Build convergence + accuracy summary for email ──
+    # Convergence + accuracy summary
     conv_data = get_all_convergence(pred_log)
-    stocks = new_df["Stock"].unique()
-
     summary = []
-    for stock in stocks:
+    for stock in new_df["Stock"].unique():
         conv = conv_data.get(stock, {})
         acc = get_historical_accuracy(acc_log, stock)
         sig = get_signal(conv, acc)
-        summary.append(
-            {
-                "stock": stock,
-                "conv": conv,
-                "acc": acc,
-                "signal": sig,
-            }
-        )
+        summary.append({"stock": stock, "conv": conv, "acc": acc, "signal": sig})
 
-    # Summary stats
     mae = new_df["Error_Pct"].abs().mean()
     bias = new_df["Error_Pct"].mean()
     hits = len(new_df[new_df["Within_Threshold"]])
     total = len(new_df)
 
     print(
-        f"\n  📈 Summary: {hits}/{total} within {ACCURACY_THRESHOLD}% | MAE: {mae:.2f}% | Bias: {bias:+.2f}%"
+        f"\n  📈 Summary: {hits}/{total} within {ACCURACY_THRESHOLD}% | "
+        f"MAE: {mae:.2f}% | Bias: {bias:+.2f}%"
     )
 
     _commit_logs()

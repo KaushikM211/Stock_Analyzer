@@ -845,7 +845,7 @@ def _build_accuracy_html(
             <td style="padding:7px;">&#8377;{s["conv"].get("Price_Min", "?")} – &#8377;{s["conv"].get("Price_Max", "?")}</td>
             <td style="padding:7px;">{s["conv"].get("Convergence_Label", "N/A")} {s["conv"].get("Convergence_Pct", "?")}%</td>
             <td style="padding:7px;">{s["conv"].get("Runs_Agreeing", "?")} / {s["conv"].get("Total_Runs", "?")}</td>
-            <td style="padding:7px;">{"N/A (new)" if s["acc"].get("Total", 0) < 3 else f"{s['acc'].get('Hit_Rate_Pct', '?')}% ({s['acc'].get('Total', 0)} checks)"}</td>
+            <td style="padding:7px;">{"N/A (new)" if s["acc"].get("Total", 0) < 3 else f"{s['acc'].get('Hit_Rate_Pct', '?')}% ({s['acc'].get('Total', 0)} of last 20)"}</td>
             <td style="padding:7px; font-weight:bold;">{s["signal"]}</td>
         </tr>'''
                 for i, s in enumerate(summary or [])

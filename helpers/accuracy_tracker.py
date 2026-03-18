@@ -27,11 +27,13 @@ import pandas as pd
 import yfinance as yf
 
 ACCURACY_LOG = "accuracy_log.csv"
-PREDICTION_LOG = "prediction_log.csv"  # all run predictions before actuals known
+PREDICTION_LOG = "prediction_log.csv"
 ACCURACY_THRESHOLD = 3.0  # % error considered accurate
+ACCURACY_LOOKBACK = 20  # rolling window — last N checks per stock
+# ~1 month of daily runs; balances recency vs stability
 CONVERGENCE_HIGH = 0.75  # 75%+ runs agree → 🟢
 CONVERGENCE_MED = 0.50  # 50%+ runs agree → 🟡
-# below 50%       → 🔴
+# below 50%                → 🔴
 
 LOG_COLUMNS = [
     "Scan_Date",
@@ -302,6 +304,10 @@ def log_predictions(results: dict, run_label: str) -> None:
         pred_log = pred_log.drop_duplicates(
             subset=["Scan_Date", "Run_Time", "Stock"], keep="last"
         )
+        # Trim to last 60 days — convergence only needs recent runs,
+        # older predictions don't improve the signal and just bloat the file
+        cutoff = (date.today() - timedelta(days=60)).isoformat()
+        pred_log = pred_log[pred_log["Scan_Date"] >= cutoff].reset_index(drop=True)
         _save_csv(pred_log, PREDICTION_LOG, "Prediction log")
         print(
             f"  📝 Logged {len(new_rows)} predictions from {run_label} (source: {source})"
@@ -383,11 +389,14 @@ def get_all_convergence(pred_log: pd.DataFrame) -> dict[str, dict]:
 
 def get_historical_accuracy(acc_log: pd.DataFrame, stock: str) -> dict:
     """
-    Returns historical accuracy stats for a stock:
-      - Total predictions checked
-      - Hit rate (within ACCURACY_THRESHOLD %)
-      - Average error
-      - Bias (positive = model underestimates price)
+    Returns historical accuracy stats for a stock using a rolling window.
+
+    Uses the last ACCURACY_LOOKBACK checks rather than all-time history.
+    Why rolling:
+        A prediction from 2 months ago was made in a different market
+        regime. All-time accuracy dilutes recent signal quality.
+        Last 20 checks ≈ one month of daily runs — recent enough to
+        be meaningful, large enough to be statistically stable.
     """
     df = acc_log[acc_log["Stock"] == stock] if not acc_log.empty else pd.DataFrame()
     if df.empty:
@@ -398,6 +407,9 @@ def get_historical_accuracy(acc_log: pd.DataFrame, stock: str) -> dict:
             "Avg_Error_Pct": None,
             "Bias_Pct": None,
         }
+
+    # Sort by most recent first, take last ACCURACY_LOOKBACK checks
+    df = df.sort_values("Scan_Date", ascending=False).head(ACCURACY_LOOKBACK)
 
     total = len(df)
     hits = len(df[df["Within_Threshold"]])
@@ -562,6 +574,10 @@ def check_predictions(
 
     new_df = pd.DataFrame(new_records)
     acc_log = pd.concat([acc_log, new_df], ignore_index=True)
+    # Trim to last 6 months — keeps enough history for rolling accuracy window
+    # while preventing unbounded file growth over years of operation
+    cutoff = (date.today() - timedelta(days=180)).isoformat()
+    acc_log = acc_log[acc_log["Scan_Date"] >= cutoff].reset_index(drop=True)
     _save_csv(acc_log, ACCURACY_LOG, "Accuracy log")
 
     # Convergence + accuracy summary

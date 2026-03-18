@@ -28,11 +28,11 @@ import yfinance as yf
 
 ACCURACY_LOG = "accuracy_log.csv"
 PREDICTION_LOG = "prediction_log.csv"
-ACCURACY_THRESHOLD = 3.0  # % error considered accurate
-ACCURACY_LOOKBACK = 20  # rolling window — last N checks per stock
-# ~1 month of daily runs; balances recency vs stability
-CONVERGENCE_HIGH = 0.75  # 75%+ runs agree → 🟢
-CONVERGENCE_MED = 0.50  # 50%+ runs agree → 🟡
+ACCURACY_THRESHOLD = 3.0   # % error considered accurate
+ACCURACY_LOOKBACK  = 20    # rolling window — last N checks per stock
+                            # ~1 month of daily runs; balances recency vs stability
+CONVERGENCE_HIGH = 0.75    # 75%+ runs agree → 🟢
+CONVERGENCE_MED  = 0.50    # 50%+ runs agree → 🟡
 # below 50%                → 🔴
 
 LOG_COLUMNS = [
@@ -43,11 +43,11 @@ LOG_COLUMNS = [
     "Company_Name",
     "Predicted_Buy_Date",
     "Predicted_Buy_Price",
-    "Actual_Open",  # day's Low on predicted buy date — achievable intraday entry
+    "Actual_Open",           # day's Low on predicted buy date — achievable intraday entry
     "Actual_Price_Date",
     "Error_Pct",
     "Direction",
-    "Within_Threshold",  # True if abs(error) <= ACCURACY_THRESHOLD
+    "Within_Threshold",     # True if abs(error) <= ACCURACY_THRESHOLD
     "Note",
 ]
 
@@ -74,11 +74,9 @@ def _load_csv(path: str, columns: list) -> pd.DataFrame:
             # Handle column renames gracefully — migrate old names to new ones
             rename_map = {
                 "Actual_Close": "Actual_Open",  # renamed when switched from close to open
-                "Actual_Low": "Actual_Open",  # renamed when switched from low to open
+                "Actual_Low":   "Actual_Open",  # renamed when switched from low to open
             }
-            df = df.rename(
-                columns={k: v for k, v in rename_map.items() if k in df.columns}
-            )
+            df = df.rename(columns={k: v for k, v in rename_map.items() if k in df.columns})
             # Add any missing columns with empty values
             for col in columns:
                 if col not in df.columns:
@@ -95,58 +93,30 @@ def _save_csv(df: pd.DataFrame, path: str, label: str):
 
 
 def _commit_logs():
-    """
-    Commits accuracy_log.csv and prediction_log.csv to main.
-    Called after accuracy check completes.
-    """
+    """Pushes accuracy_log.csv and prediction_log.csv to main via GitHub API."""
     if not os.getenv("GITHUB_ACTIONS"):
-        print("  ℹ Not in GitHub Actions — skipping log commit.")
+        print("  ℹ Not in GitHub Actions — skipping log push.")
         return
-    try:
-        token = os.getenv("GITHUB_TOKEN", "")
-        repo = os.getenv("GITHUB_REPOSITORY", "")
-        branch = os.getenv("GITHUB_REF_NAME", "main")
-        remote = f"https://x-access-token:{token}@github.com/{repo}.git"
-        workspace = os.getenv("GITHUB_WORKSPACE", "")
-        acc_log_abs = (
-            os.path.join(workspace, ACCURACY_LOG) if workspace else ACCURACY_LOG
-        )
-        pred_log_abs = (
-            os.path.join(workspace, PREDICTION_LOG) if workspace else PREDICTION_LOG
-        )
 
-        subprocess.run(
-            ["git", "config", "user.email", "actions@github.com"], check=True
+    workspace    = os.getenv("GITHUB_WORKSPACE", "")
+    acc_log_abs  = os.path.join(workspace, ACCURACY_LOG)  if workspace else ACCURACY_LOG
+    pred_log_abs = os.path.join(workspace, PREDICTION_LOG) if workspace else PREDICTION_LOG
+
+    for filepath, label in [
+        (acc_log_abs,  "Accuracy log"),
+        (pred_log_abs, "Prediction log"),
+    ]:
+        if not os.path.exists(filepath):
+            print(f"  ⚠ {filepath} not found — skipping.")
+            continue
+        ok = _push_file_to_github(
+            filepath,
+            f"accuracy + prediction log {date.today()} [skip ci]"
         )
-        subprocess.run(["git", "config", "user.name", "GitHub Actions"], check=True)
-
-        # Re-set remote with token — post-job cleanup may have stripped auth header
-        subprocess.run(["git", "remote", "set-url", "origin", remote], check=True)
-
-        subprocess.run(["git", "checkout", branch], check=True)
-        subprocess.run(["git", "pull", "origin", branch, "--rebase"], check=True)
-
-        subprocess.run(["git", "add", acc_log_abs, pred_log_abs], check=True)
-        result = subprocess.run(
-            ["git", "diff", "--cached", "--quiet"], capture_output=True
-        )
-        if result.returncode != 0:
-            subprocess.run(
-                [
-                    "git",
-                    "commit",
-                    "-m",
-                    f"accuracy + prediction log {date.today()} [skip ci]",
-                ],
-                check=True,
-            )
-            subprocess.run(["git", "push", "origin", branch], check=True)
-            print(f"  ✓ Logs committed to {branch}")
+        if ok:
+            print(f"  ✓ {label} pushed to main via GitHub API")
         else:
-            print("  ℹ No changes to logs — nothing to commit.")
-
-    except subprocess.CalledProcessError as e:
-        print(f"  ⚠ Git commit failed: {e}")
+            print(f"  ⚠ {label} push failed")
 
 
 # ─────────────────────────────────────────────
@@ -276,7 +246,7 @@ def log_predictions(results: dict, run_label: str) -> None:
 
     Falls back to iterating band keys if _full_pool absent (backwards compat).
     """
-    today = date.today().isoformat()
+    today    = date.today().isoformat()
     run_time = __import__("datetime").datetime.now().strftime("%H:%M")
 
     pred_log = _load_csv(PREDICTION_LOG, PRED_COLUMNS)
@@ -285,47 +255,37 @@ def log_predictions(results: dict, run_label: str) -> None:
     # ── Build stock_list from full pool or band keys ──
     if "_full_pool" in results:
         full = results["_full_pool"]
-        stock_list = (
-            full.to_dict(orient="records")
-            if isinstance(full, pd.DataFrame)
-            else list(full)
-        )
+        stock_list = full.to_dict(orient="records") if isinstance(full, pd.DataFrame) else list(full)
         source = f"full pool ({len(stock_list)} stocks)"
     else:
         stock_list = []
         for band, stocks in results.items():
             if band.startswith("_"):
                 continue
-            rows = (
-                stocks.to_dict(orient="records")
-                if isinstance(stocks, pd.DataFrame)
-                else list(stocks)
-            )
+            rows = stocks.to_dict(orient="records") if isinstance(stocks, pd.DataFrame) else list(stocks)
             stock_list.extend(rows)
         source = f"band keys ({len(stock_list)} stocks)"
 
     # ── Build log rows ──
     for stock in stock_list:
-        pred_date = stock.get("Predicted_Best_Buy_Date", "")
+        pred_date  = stock.get("Predicted_Best_Buy_Date", "")
         pred_price = stock.get("Predicted_Best_Buy_Price", "")
-        ticker = stock.get("Stock", "")
-        company = stock.get("Company_Name", "")
+        ticker     = stock.get("Stock", "")
+        company    = stock.get("Company_Name", "")
         if not ticker or not pred_date or pred_date == "N/A":
             continue
-        new_rows.append(
-            {
-                "Scan_Date": today,
-                "Run_Time": run_time,
-                "Run_Label": run_label,
-                "Stock": ticker,
-                "Company_Name": company,
-                "Predicted_Buy_Date": pred_date,
-                "Predicted_Buy_Price": pred_price,
-            }
-        )
+        new_rows.append({
+            "Scan_Date":           today,
+            "Run_Time":            run_time,
+            "Run_Label":           run_label,
+            "Stock":               ticker,
+            "Company_Name":        company,
+            "Predicted_Buy_Date":  pred_date,
+            "Predicted_Buy_Price": pred_price,
+        })
 
     if new_rows:
-        new_df = pd.DataFrame(new_rows)
+        new_df   = pd.DataFrame(new_rows)
         pred_log = pd.concat([pred_log, new_df], ignore_index=True)
         # Keep only the MOST RECENT prediction per stock
         # Earlier runs' predictions are superseded by later ones —
@@ -336,63 +296,96 @@ def log_predictions(results: dict, run_label: str) -> None:
         ).drop_duplicates(subset=["Stock"], keep="last")
         pred_log = pred_log.reset_index(drop=True)
         _save_csv(pred_log, PREDICTION_LOG, "Prediction log")
-        print(
-            f"  📝 Logged {len(new_rows)} predictions from {run_label} (source: {source})"
-        )
+        print(f"  📝 Logged {len(new_rows)} predictions from {run_label} (source: {source})")
         # Commit immediately — each run is a fresh VM, must push or lose data
         _commit_prediction_log()
     else:
         print(f"  ℹ No predictions to log from {run_label}")
 
 
+def _push_file_to_github(filepath: str, commit_message: str) -> bool:
+    """
+    Pushes a single file to main branch via GitHub REST API.
+    Bypasses all local git state — no branch switching, no pull, no auth issues.
+    consolidate.py switches branches during the same job which corrupts the
+    local git state and causes 'git pull' to fail with returncode 128.
+    The API is stateless and always works as long as GITHUB_TOKEN is valid.
+    """
+    import base64
+    import urllib.request
+    import urllib.error
+
+    token  = os.getenv("GITHUB_TOKEN", "")
+    repo   = os.getenv("GITHUB_REPOSITORY", "")
+    branch = os.getenv("GITHUB_REF_NAME", "main")
+
+    if not token or not repo:
+        print("  ⚠ GITHUB_TOKEN or GITHUB_REPOSITORY not set — skipping API push.")
+        return False
+
+    filename = os.path.basename(filepath)
+    api_url  = f"https://api.github.com/repos/{repo}/contents/{filename}"
+    headers  = {
+        "Authorization": f"token {token}",
+        "Accept": "application/vnd.github.v3+json",
+        "Content-Type": "application/json",
+    }
+
+    with open(filepath, "rb") as f:
+        content_b64 = base64.b64encode(f.read()).decode()
+
+    # Get current file SHA (required for updates, omit for new files)
+    sha = None
+    try:
+        req = urllib.request.Request(
+            f"{api_url}?ref={branch}", headers=headers
+        )
+        with urllib.request.urlopen(req) as resp:
+            sha = json.loads(resp.read().decode())["sha"]
+    except Exception:
+        pass  # file doesn't exist yet — first push, sha not needed
+
+    payload = {
+        "message": commit_message,
+        "content": content_b64,
+        "branch":  branch,
+    }
+    if sha:
+        payload["sha"] = sha
+
+    data = json.dumps(payload).encode()
+    req  = urllib.request.Request(
+        api_url, data=data, headers=headers, method="PUT"
+    )
+    try:
+        with urllib.request.urlopen(req) as resp:
+            resp.read()
+        return True
+    except urllib.error.HTTPError as e:
+        print(f"  ⚠ GitHub API push failed: {e.code} {e.reason}")
+        return False
+
+
 def _commit_prediction_log():
-    """
-    Commits prediction_log.csv to main after every scan run.
-    """
+    """Pushes prediction_log.csv to main via GitHub API after every scan run."""
     if not os.getenv("GITHUB_ACTIONS"):
         return
-    try:
-        token = os.getenv("GITHUB_TOKEN", "")
-        repo = os.getenv("GITHUB_REPOSITORY", "")
-        branch = os.getenv("GITHUB_REF_NAME", "main")
-        remote = f"https://x-access-token:{token}@github.com/{repo}.git"
-        workspace = os.getenv("GITHUB_WORKSPACE", "")
-        pred_log_abs = (
-            os.path.join(workspace, PREDICTION_LOG) if workspace else PREDICTION_LOG
-        )
 
-        if not os.path.exists(pred_log_abs):
-            print(f"  ⚠ {pred_log_abs} not found — nothing to commit.")
-            return
+    workspace    = os.getenv("GITHUB_WORKSPACE", "")
+    pred_log_abs = os.path.join(workspace, PREDICTION_LOG) if workspace else PREDICTION_LOG
 
-        subprocess.run(
-            ["git", "config", "user.email", "actions@github.com"], check=True
-        )
-        subprocess.run(["git", "config", "user.name", "GitHub Actions"], check=True)
+    if not os.path.exists(pred_log_abs):
+        print(f"  ⚠ {pred_log_abs} not found — nothing to push.")
+        return
 
-        # Re-set the remote with token explicitly — post-job cleanup may have
-        # stripped the auth header set by actions/checkout
-        subprocess.run(["git", "remote", "set-url", "origin", remote], check=True)
-
-        subprocess.run(["git", "checkout", branch], check=True)
-        subprocess.run(["git", "pull", "origin", branch, "--rebase"], check=True)
-
-        subprocess.run(["git", "add", pred_log_abs], check=True)
-        result = subprocess.run(
-            ["git", "diff", "--cached", "--quiet"], capture_output=True
-        )
-        if result.returncode != 0:
-            subprocess.run(
-                ["git", "commit", "-m", f"prediction log {date.today()} [skip ci]"],
-                check=True,
-            )
-            subprocess.run(["git", "push", "origin", branch], check=True)
-            print(f"  ✓ Prediction log committed to {branch}")
-        else:
-            print("  ℹ Prediction log unchanged — nothing to commit.")
-
-    except subprocess.CalledProcessError as e:
-        print(f"  ⚠ Prediction log commit failed: {e}")
+    ok = _push_file_to_github(
+        pred_log_abs,
+        f"prediction log {date.today()} [skip ci]"
+    )
+    if ok:
+        print("  ✓ Prediction log pushed to main via GitHub API")
+    else:
+        print("  ⚠ Prediction log push failed")
 
 
 # ─────────────────────────────────────────────
@@ -572,7 +565,7 @@ def check_predictions(
     print(f"\n  📊 Accuracy check — predictions due: {sorted(check_dates)}")
 
     pred_log = _load_csv(PREDICTION_LOG, PRED_COLUMNS)
-    acc_log = _load_csv(ACCURACY_LOG, LOG_COLUMNS)
+    acc_log  = _load_csv(ACCURACY_LOG, LOG_COLUMNS)
     new_records = []
 
     if pred_log.empty:
@@ -587,13 +580,13 @@ def check_predictions(
     print(f"  📋 Found {len(due)} prediction records due for accuracy check")
 
     for _, row in due.iterrows():
-        ticker = row["Stock"]
+        ticker    = row["Stock"]
         pred_date = row["Predicted_Buy_Date"]
         pred_price = float(row["Predicted_Buy_Price"])
-        scan_date = row["Scan_Date"]
-        run_time = row["Run_Time"]
-        run_label = row["Run_Label"]
-        company = row["Company_Name"]
+        scan_date  = row["Scan_Date"]
+        run_time   = row["Run_Time"]
+        run_label  = row["Run_Label"]
+        company    = row["Company_Name"]
 
         # Skip if already checked
         if not acc_log.empty:
@@ -615,29 +608,27 @@ def check_predictions(
 
         error_pct = (actual_price - pred_price) / pred_price * 100
         direction = "UNDER" if actual_price < pred_price else "OVER"
-        within = abs(error_pct) <= ACCURACY_THRESHOLD
+        within    = abs(error_pct) <= ACCURACY_THRESHOLD
 
         note = ""
         if actual_date and actual_date != pred_date_obj.strftime("%Y-%m-%d"):
             note = f"Checked on {actual_date} (next trading day after {pred_date})"
 
-        new_records.append(
-            {
-                "Scan_Date": scan_date,
-                "Run_Time": run_time,
-                "Run_Label": run_label,
-                "Stock": ticker,
-                "Company_Name": company,
-                "Predicted_Buy_Date": pred_date,
-                "Predicted_Buy_Price": pred_price,
-                "Actual_Open": actual_price,  # renamed from Actual_Close
-                "Actual_Price_Date": actual_date,
-                "Error_Pct": round(error_pct, 2),
-                "Direction": direction,
-                "Within_Threshold": within,
-                "Note": note,
-            }
-        )
+        new_records.append({
+            "Scan_Date":           scan_date,
+            "Run_Time":            run_time,
+            "Run_Label":           run_label,
+            "Stock":               ticker,
+            "Company_Name":        company,
+            "Predicted_Buy_Date":  pred_date,
+            "Predicted_Buy_Price": pred_price,
+            "Actual_Open":          actual_price,   # renamed from Actual_Close
+            "Actual_Price_Date":   actual_date,
+            "Error_Pct":           round(error_pct, 2),
+            "Direction":           direction,
+            "Within_Threshold":    within,
+            "Note":                note,
+        })
 
         status = "✓" if within else "✗"
         print(
@@ -651,8 +642,8 @@ def check_predictions(
         print("  ℹ All due predictions already checked or no prices available.")
         return acc_log
 
-    new_df = pd.DataFrame(new_records)
-    acc_log = pd.concat([acc_log, new_df], ignore_index=True)
+    new_df   = pd.DataFrame(new_records)
+    acc_log  = pd.concat([acc_log, new_df], ignore_index=True)
     # Trim to last 6 months — keeps enough history for rolling accuracy window
     # while preventing unbounded file growth over years of operation
     cutoff = (date.today() - timedelta(days=180)).isoformat()
@@ -664,13 +655,13 @@ def check_predictions(
     summary = []
     for stock in new_df["Stock"].unique():
         conv = conv_data.get(stock, {})
-        acc = get_historical_accuracy(acc_log, stock)
-        sig = get_signal(conv, acc)
+        acc  = get_historical_accuracy(acc_log, stock)
+        sig  = get_signal(conv, acc)
         summary.append({"stock": stock, "conv": conv, "acc": acc, "signal": sig})
 
-    mae = new_df["Error_Pct"].abs().mean()
-    bias = new_df["Error_Pct"].mean()
-    hits = len(new_df[new_df["Within_Threshold"]])
+    mae   = new_df["Error_Pct"].abs().mean()
+    bias  = new_df["Error_Pct"].mean()
+    hits  = len(new_df[new_df["Within_Threshold"]])
     total = len(new_df)
 
     print(

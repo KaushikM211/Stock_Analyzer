@@ -86,9 +86,14 @@ jobs:
               IST_LABEL="${IST_H}:${IST_M} IST"
             fi
 
-            # 9:20 AM IST = UTC 230 mins → first run of day
-            # Accuracy check runs as a step BEFORE the scan in this job
-            if [ "$UTC_TOTAL" -le "233" ]; then
+            # Detect first run of day by checking if prediction_log.csv
+            # was already committed today — more reliable than clock time
+            # because GitHub cron delays can be 15-60 mins on free plans
+            TODAY=$(date -u +%Y-%m-%d)
+            LAST_COMMIT_DATE=$(git log -1 --format="%ci" -- prediction_log.csv 2>/dev/null | cut -d' ' -f1)
+
+            if [ "$LAST_COMMIT_DATE" != "$TODAY" ]; then
+              # prediction_log.csv not yet updated today → this is the first run
               echo "run_type=daily"               >> $GITHUB_OUTPUT
               echo "run_label=Daily ${IST_LABEL}" >> $GITHUB_OUTPUT
               echo "is_first_run=true"            >> $GITHUB_OUTPUT

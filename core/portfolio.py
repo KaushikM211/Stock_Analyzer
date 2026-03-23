@@ -18,9 +18,9 @@ import pandas as pd
 from datetime import datetime  # noqa: F401
 from core.config import MAX_SECTOR_PER_PORTFOLIO
 
-MONTHLY_BUDGET = 1_00_000
-MAX_STOCKS = 12
-MIN_ALLOCATION = 2_000
+MONTHLY_BUDGET = 50_000
+MAX_STOCKS = 7
+MIN_ALLOCATION = 1_500
 MAX_SINGLE_PCT = 0.18
 
 ICICI_BROKERAGE_PCT = 0.0055

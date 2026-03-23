@@ -39,12 +39,12 @@ from core.config import MAX_ANNUAL_RETURN, MIN_ANNUAL_RETURN
 # 0.5  = mild        (slight preference for stable stocks)
 # 1.0  = standard    (Sharpe-ratio equivalent)
 # 2.0  = aggressive  (strongly punishes volatile stocks)
-VOLATILITY_PENALTY = 0.53  # between mild and standard — good for NSE mid/large caps
+VOLATILITY_PENALTY = 0.65  # between mild and standard — good for NSE mid/large caps
 
 # Lookback window for estimating mean return and volatility
 # 252 = 1 year — captures recent regime without overfitting to distant history
 # 504 = 2 years — more stable estimate, less reactive to recent moves
-LOOKBACK_DAYS = 378  # 18 months — balances recency and stability
+LOOKBACK_DAYS = 420  # 20 months — balances recency and stability
 
 # Minimum data required for a reliable estimate
 MIN_RETURN_DAYS = 60
@@ -106,7 +106,7 @@ def vpr_forecast(
         # ── Step 6: Final price caps as safety net ──
         curr_price = float(close.iloc[-1])
         max_price = curr_price * (1 + MAX_ANNUAL_RETURN) ** (horizon / 252)
-        min_price = curr_price * (1 + abs(MIN_ANNUAL_RETURN)) ** (-horizon / 252)
+        min_price = curr_price * (1 + MIN_ANNUAL_RETURN) ** (horizon / 252)
         forecast_prices = np.clip(forecast_prices, min_price, max_price)
 
         # ── Index to future business days ──

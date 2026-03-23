@@ -4,7 +4,7 @@ Core module for stock analysis.
 Primary exports:
   - Scanner: Main analysis and prediction functions
   - Portfolio: Portfolio construction and optimization
-  - Data: Data fetching and filtering
+  - Data: Data fetching, filtering and risk scoring
   - Features: Technical indicator calculations
   - Ensemble: Model ensemble forecasting
 """
@@ -19,7 +19,9 @@ from .portfolio import build_portfolios, MONTHLY_BUDGET
 from .data import (
     get_nifty500_tickers,
     fetch_fundamentals,
-    passes_fundamental_filter,
+    passes_fundamental_filter,  # backwards-compat shim — always returns True
+    score_fundamental_risk,  # new: multiplicative risk scorer (1–100)
+    fundamental_quality_score,  # new: ensemble weight adjuster (0.0–1.0)
     fetch_best_available,
     fetch_sector_momentum,
     get_top_sectors,
@@ -58,6 +60,8 @@ __all__ = [
     "get_nifty500_tickers",
     "fetch_fundamentals",
     "passes_fundamental_filter",
+    "score_fundamental_risk",
+    "fundamental_quality_score",
     "fetch_best_available",
     "fetch_sector_momentum",
     "get_top_sectors",

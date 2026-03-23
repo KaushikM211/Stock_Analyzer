@@ -109,8 +109,8 @@ def build_features(close: pd.Series, volume: pd.Series) -> pd.DataFrame:
         # RSI zone encoding — oversold/neutral/overbought
         df["rsi_zone"] = pd.cut(
             df["rsi"],
-            bins=[0, 30, 50, 70, 100],
-            labels=[-1, 0, 1, 2],
+            bins=[0, 25, 45, 55, 75, 100],
+            labels=[-1, 0, 0.5, 1, 2],
         ).astype(float)
 
     # ── 4. MACD ──
@@ -151,7 +151,7 @@ def build_features(close: pd.Series, volume: pd.Series) -> pd.DataFrame:
         df["volume_ma"] = df["volume"].rolling(vol_window).mean()
         df["volume_ratio"] = df["volume"] / (df["volume_ma"] + 1e-9)
         # Volume spike flag — unusual activity often precedes big moves
-        df["volume_spike"] = (df["volume_ratio"] > 2.0).astype(int)
+        df["volume_spike"] = (df["volume_ratio"] > 3.0).astype(int)
 
     # ── 9. Day-of-week ──
     # NSE-specific: Thursday is F&O expiry — tends to have directional moves

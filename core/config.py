@@ -58,10 +58,10 @@ FORECAST_HORIZON = 504  # ~24 months of trading days
 # ─────────────────────────────────────────────
 # BEST BUY DATE PREDICTION
 # Trading days forward to scan for predicted price trough
-# 30 days = ~6 weeks — actionable near-term entry window
+# 50 days = ~10 weeks — actionable near-term entry window
 # ─────────────────────────────────────────────
 
-BEST_BUY_LOOKFORWARD_DAYS = 30
+BEST_BUY_LOOKFORWARD_DAYS = 50
 
 # Target window: start AFTER 12 months (LTCG threshold), no upper cap
 # Let the model find the natural peak anywhere from month 12 to month 24
@@ -101,16 +101,16 @@ MODEL_WEIGHTS = {
 # which is too permissive for mid/large caps. 0.42 (42%/yr) is exceptional
 # but achievable for genuine small-cap outperformers, while keeping
 # mid/large cap forecasts grounded.
-MAX_ANNUAL_RETURN = 0.42
+MAX_ANNUAL_RETURN = 0.35
 MIN_ANNUAL_RETURN = -0.175
 
 # Momentum pre-filter tolerance
 MOMENTUM_TOLERANCE = 0.90
 
 # Minimum after-tax ROI to qualify
-# Raised from 6.5% to 10% — 6.5% barely beats FD rates and adds noise.
-# With 2% slippage already baked in, 10% after-tax is a meaningful hurdle.
-MIN_WEIGHTED_ROI = 10.0
+# Raised from 6.5% to 7.5% — 6.5% barely beats FD rates and adds noise.
+# With 2% slippage already baked in, 7.5% after-tax is a meaningful hurdle.
+MIN_WEIGHTED_ROI = 7.5
 
 # ─────────────────────────────────────────────
 # FUNDAMENTAL RISK SCORE THRESHOLDS

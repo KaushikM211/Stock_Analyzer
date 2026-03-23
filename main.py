@@ -184,32 +184,24 @@ def main():
         run_analysis(run_label=label, send_full_email=False)
         return
 
-    # ── Daily Run 1 (9:00 AM) — baseline save every trading day ──
-    # Sends full email ONLY on first NSE trading day of month
-    # All other days: saves baseline silently for intraday comparison
+    # ── Daily Run (9:20 AM) — full email every trading day ──
     if "--daily" in args:
         if not is_nse_trading_day(today):
             print(f"[{today}] Not an NSE trading day — skipping.")
             sys.exit(0)
-        if is_first_nse_trading_day_of_month(today):
-            print(
-                f"[{today}] First NSE trading day of month — running full analysis + email."
-            )
-            run_analysis(run_label="Monthly Run 09:00", send_full_email=True)
-        else:
-            print(f"[{today}] Daily baseline run — saving results, no email.")
-            run_analysis(run_label="Daily Baseline 09:00", send_full_email=False)
+        print(f"[{today}] Daily run — running full analysis + email.")
+        run_analysis(run_label=f"Daily {today}", send_full_email=True)
         return
 
-    # ── Accuracy check run ──
-    # --accuracy  : manual / forced run — checks regardless of time
-    # --eod       : end-of-day run triggered by workflow at 15:00 IST only
-    #               waits until market close data is available before checking
+    # ── Accuracy check ──
+    # --accuracy : runs on 9:45 AM IST job (second scheduled run)
+    #              validates yesterday's predictions against today's intraday Low
+    #              also usable manually at any time
     if "--accuracy" in args or "--eod" in args:
         if not is_nse_trading_day(today):
             print(f"[{today}] Not an NSE trading day — skipping accuracy check.")
             sys.exit(0)
-        print(f"[{today}] Running prediction accuracy check (post-market close)...")
+        print(f"[{today}] Running prediction accuracy check...")
         check_predictions()
         return
 

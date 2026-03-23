@@ -85,7 +85,7 @@ def _flatten_all(results: dict) -> pd.DataFrame:
     # Low risk (score ~0–25) → no drag
     # Medium (26–50) → slight drag
     # High (51–100) → meaningful drag — ROI must compensate
-    risk_score_col = all_stocks.get("Risk_Score", pd.Series(0, index=all_stocks.index))
+    risk_score_col = all_stocks.get("Risk_Score", pd.Series(0, index=all_stocks.index))  # noqa: F841
     if "Risk_Score" in all_stocks.columns:
         risk_penalty = all_stocks["Risk_Score"] / 100 * 5  # max 5 pt drag
     else:

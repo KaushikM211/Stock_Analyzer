@@ -97,10 +97,10 @@ def prophet_forecast(
 
     model = Prophet(
         daily_seasonality=False,
-        weekly_seasonality=False,  # weekly adds ~0.3s per fit, marginal value
+        weekly_seasonality=True,  # weekly adds ~0.3s per fit, marginal value
         yearly_seasonality=len(close) >= 200,
-        changepoint_prior_scale=0.03,
-        seasonality_prior_scale=0.2,
+        changepoint_prior_scale=0.05,
+        seasonality_prior_scale=0.15,
         interval_width=0.80,
         stan_backend="CMDSTANPY",  # faster than default
         n_changepoints=25,  # default 25

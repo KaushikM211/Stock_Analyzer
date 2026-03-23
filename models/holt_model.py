@@ -46,6 +46,8 @@ def holt_forecast(
             close.values,
             trend="add",
             damped_trend=True,
+            seasonal="add",
+            seasonal_periods=21,  # monthly seasonality (21 trading days)
             initialization_method="estimated",
         )
         result = model.fit(

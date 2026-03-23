@@ -83,9 +83,9 @@ def xgboost_forecast(
 
     model = XGBRegressor(
         n_estimators=150,  # 200 → 150: marginal accuracy loss, 2x speed
-        max_depth=3,
-        learning_rate=0.0675,  # slightly higher lr compensates for fewer trees
-        subsample=0.8,
+        max_depth=4,
+        learning_rate=0.075,  # slightly higher lr compensates for fewer trees
+        subsample=0.85,
         colsample_bytree=0.8,
         random_state=42,
         verbosity=0,
@@ -112,7 +112,9 @@ def xgboost_forecast(
     price_path = np.zeros(horizon)
 
     # Zone 1: Day 1 → horizon_train — ramp from current to XGBoost target
-    price_path[:horizon_train] = np.linspace(curr_price, predicted_price, horizon_train)
+    price_path[:horizon_train] = np.linspace(
+        curr_price, max(curr_price, predicted_price), horizon_train
+    )
 
     # Zone 2: horizon_train → horizon_train*2 — blend XGBoost flat into Holt
     blend_end = min(horizon_train * 2, horizon)

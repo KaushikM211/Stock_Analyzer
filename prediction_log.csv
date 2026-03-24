@@ -25,114 +25,119 @@ Scan_Date,Run_Time,Run_Label,Stock,Company_Name,Predicted_Buy_Date,Predicted_Buy
 2026-03-23,10:38,Live 16:01 IST,JSL.NS,Jindal Stainless Limited,24 Mar 2026,696.12
 2026-03-23,10:38,Live 16:01 IST,KIRLOSENG.NS,Kirloskar Oil Engines Limited,03 Apr 2026,1283.97
 2026-03-23,10:38,Live 16:01 IST,INDIACEM.NS,The India Cements Limited,24 Mar 2026,349.61
-2026-03-23,11:23,Force Run,HBLENGINE.NS,HBL ENGINEERING LTD,27 Mar 2026,624.94
-2026-03-23,11:23,Force Run,AIAENG.NS,AIA Engineering Limited,25 Mar 2026,3312.4
-2026-03-23,11:23,Force Run,SUNTV.NS,Sun TV Network Limited,27 Mar 2026,598.31
-2026-03-23,11:23,Force Run,ASTRAL.NS,Astral Limited,27 Mar 2026,1555.85
-2026-03-23,11:23,Force Run,TIMKEN.NS,Timken India Limited,24 Mar 2026,3094.75
-2026-03-23,11:23,Force Run,ENRIN.NS,Siemens Energy India Limited,26 Mar 2026,2682.38
-2026-03-23,11:23,Force Run,ACMESOLAR.NS,ACME SOLAR HOLDINGS LTD,27 Mar 2026,237.01
-2026-03-23,11:23,Force Run,IIFL.NS,IIFL Finance Limited,26 Mar 2026,451.56
-2026-03-23,11:23,Force Run,RRKABEL.NS,R R Kabel Limited,24 Mar 2026,1317.86
-2026-03-23,11:23,Force Run,ZFCVINDIA.NS,ZF Commercial Vehicle Control Systems India Limited,26 Mar 2026,13311.17
-2026-03-23,11:23,Force Run,POONAWALLA.NS,Poonawalla Fincorp Limited,02 Apr 2026,376.41
-2026-03-23,11:23,Force Run,SONACOMS.NS,Sona BLW Precision Forgings Limited,26 Mar 2026,485.5
-2026-03-23,11:23,Force Run,ESCORTS.NS,Escorts Kubota Limited,24 Mar 2026,2873.33
-2026-03-23,11:23,Force Run,HINDPETRO.NS,Hindustan Petroleum Corporation Limited,25 Mar 2026,319.11
-2026-03-23,11:23,Force Run,KPIL.NS,Kalpataru Projects International Limited,24 Mar 2026,1019.59
-2026-03-23,11:23,Force Run,COCHINSHIP.NS,Cochin Shipyard Limited,26 Mar 2026,1268.11
-2026-03-23,11:23,Force Run,GODIGIT.NS,GO DIGIT GENERAL INS LTD,03 Apr 2026,324.23
 2026-03-23,11:23,Force Run,LT.NS,Larsen & Toubro Limited,24 Mar 2026,3343.04
-2026-03-23,11:23,Force Run,VOLTAS.NS,Voltas Limited,02 Apr 2026,1246.87
-2026-03-23,11:23,Force Run,UNITDSPR.NS,UNITED SPIRITS LIMITED,24 Mar 2026,1275.72
-2026-03-23,11:23,Force Run,TRIVENI.NS,Triveni Engineering & Industries Limited,24 Mar 2026,348.73
-2026-03-23,11:23,Force Run,AADHARHFC.NS,AADHAR HOUSING FINANCE L,31 Mar 2026,444.38
-2026-03-23,11:23,Force Run,WAAREEENER.NS,WAAREE ENERGIES LIMITED,07 Apr 2026,3034.57
-2026-03-23,11:23,Force Run,CHOLAFIN.NS,Cholamandalam Investment and Finance Company Limited,24 Mar 2026,1379.14
-2026-03-23,11:23,Force Run,SAMMAANCAP.NS,Sammaan Capital Limited,26 Mar 2026,130.31
-2026-03-23,11:23,Force Run,M&MFIN.NS,Mahindra & Mahindra Financial Services Limited,26 Mar 2026,293.13
-2026-03-23,11:23,Force Run,SIEMENS.NS,Siemens Limited,14 Apr 2026,2986.85
-2026-03-23,11:23,Force Run,LINDEINDIA.NS,Linde India Limited,24 Mar 2026,6774.61
-2026-03-23,11:23,Force Run,ICICIPRULI.NS,ICICI Prudential Life Insurance Company Limited,07 Apr 2026,530.52
-2026-03-23,11:23,Force Run,USHAMART.NS,Usha Martin Limited,25 Mar 2026,387.3
-2026-03-23,11:23,Force Run,CANFINHOME.NS,Can Fin Homes Limited,01 Apr 2026,819.8
-2026-03-23,11:23,Force Run,GRAPHITE.NS,Graphite India Limited,24 Mar 2026,563.4
-2026-03-23,11:23,Force Run,HEG.NS,HEG Limited,24 Mar 2026,477.07
 2026-03-23,11:23,Force Run,APOLLOTYRE.NS,Apollo Tyres Limited,24 Mar 2026,399.66
-2026-03-23,11:23,Force Run,KEI.NS,KEI Industries Limited,27 Mar 2026,3977.48
-2026-03-23,11:23,Force Run,ENDURANCE.NS,Endurance Technologies Limited,26 Mar 2026,2208.62
-2026-03-23,11:23,Force Run,PETRONET.NS,Petronet LNG Limited,25 Mar 2026,238.24
-2026-03-23,11:23,Force Run,APLAPOLLO.NS,APL Apollo Tubes Limited,24 Mar 2026,1895.62
-2026-03-23,11:23,Force Run,EMCURE.NS,EMCURE PHARMACEUTICALS L,24 Mar 2026,1472.28
-2026-03-23,11:23,Force Run,POLYCAB.NS,Polycab India Limited,27 Mar 2026,6782.1
-2026-03-23,11:23,Force Run,LTFOODS.NS,LT Foods Limited,24 Mar 2026,364.9
-2026-03-23,11:23,Force Run,PAYTM.NS,One97 Communications Limited,24 Mar 2026,991.51
-2026-03-23,11:23,Force Run,ENGINERSIN.NS,Engineers India Limited,26 Mar 2026,180.76
-2026-03-23,11:23,Force Run,MARICO.NS,Marico Limited,24 Mar 2026,725.62
-2026-03-23,11:23,Force Run,ASAHIINDIA.NS,Asahi India Glass Limited,24 Mar 2026,802.36
-2026-03-23,11:23,Force Run,SCI.NS,The Shipping Corporation of India Limited,24 Mar 2026,219.46
-2026-03-23,11:23,Force Run,AIIL.NS,Authum Investment & Infrastructure Limited,27 Mar 2026,478.76
-2026-03-23,11:23,Force Run,RBLBANK.NS,RBL Bank Limited,26 Mar 2026,289.36
-2026-03-23,11:23,Force Run,SAILIFE.NS,SAI LIFE SCIENCES LIMITED,27 Mar 2026,987.87
-2026-03-23,11:23,Force Run,SCHAEFFLER.NS,Schaeffler India Limited,24 Mar 2026,3958.2
-2026-03-23,11:23,Force Run,UNOMINDA.NS,Uno Minda Limited,26 Mar 2026,1029.39
-2026-03-23,11:23,Force Run,HAL.NS,Hindustan Aeronautics Limited,27 Mar 2026,3633.46
-2026-03-23,11:23,Force Run,SAIL.NS,Steel Authority of India Limited,26 Mar 2026,143.14
-2026-03-23,11:23,Force Run,DATAPATTNS.NS,Data Patterns (India) Limited,27 Mar 2026,3069.0
-2026-03-23,11:23,Force Run,SYRMA.NS,Syrma SGS Technology Limited,27 Mar 2026,744.7
-2026-03-23,11:23,Force Run,ADANIENSOL.NS,Adani Energy Solutions Limited,24 Mar 2026,946.43
-2026-03-23,11:23,Force Run,ABCAPITAL.NS,Aditya Birla Capital Limited,24 Mar 2026,295.29
-2026-03-23,11:23,Force Run,CRAFTSMAN.NS,Craftsman Automation Limited,24 Mar 2026,6547.23
-2026-03-23,11:23,Force Run,AUBANK.NS,AU Small Finance Bank Limited,26 Mar 2026,848.5
-2026-03-23,11:23,Force Run,AXISBANK.NS,Axis Bank Limited,24 Mar 2026,1170.93
-2026-03-23,11:23,Force Run,ATHERENERG.NS,Ather Energy Limited,31 Mar 2026,748.24
-2026-03-23,11:23,Force Run,IOC.NS,Indian Oil Corporation Limited,26 Mar 2026,137.8
-2026-03-23,11:23,Force Run,MRPL.NS,Mangalore Refinery and Petrochemicals Limited,26 Mar 2026,182.79
-2026-03-23,11:23,Force Run,JSWSTEEL.NS,JSW Steel Limited,24 Mar 2026,1111.93
-2026-03-23,11:23,Force Run,JBCHEPHARM.NS,J. B. Chemicals & Pharmaceuticals Limited,27 Mar 2026,2077.93
-2026-03-23,11:23,Force Run,HEROMOTOCO.NS,Hero MotoCorp Limited,26 Mar 2026,5056.61
-2026-03-23,11:23,Force Run,CUB.NS,City Union Bank Limited,24 Mar 2026,234.57
-2026-03-23,11:23,Force Run,JINDALSTEL.NS,Jindal Steel Limited,24 Mar 2026,1107.02
-2026-03-23,11:23,Force Run,BPCL.NS,Bharat Petroleum Corporation Limited,10 Apr 2026,270.47
-2026-03-23,11:23,Force Run,GESHIP.NS,The Great Eastern Shipping Company Limited,26 Mar 2026,1359.46
-2026-03-23,11:23,Force Run,NYKAA.NS,FSN E-Commerce Ventures Limited,24 Mar 2026,234.9
 2026-03-23,11:23,Force Run,M&M.NS,Mahindra & Mahindra Limited,24 Mar 2026,2958.55
-2026-03-23,11:23,Force Run,BANKBARODA.NS,Bank of Baroda Limited,26 Mar 2026,266.29
-2026-03-23,11:23,Force Run,NAM-INDIA.NS,Nippon Life India Asset Management Limited,07 Apr 2026,817.06
-2026-03-23,11:23,Force Run,MOTHERSON.NS,Samvardhana Motherson International Limited,26 Mar 2026,106.62
-2026-03-23,11:23,Force Run,TATASTEEL.NS,Tata Steel Limited,26 Mar 2026,187.25
-2026-03-23,11:23,Force Run,FEDERALBNK.NS,The Federal Bank Limited,24 Mar 2026,254.29
-2026-03-23,11:23,Force Run,HINDZINC.NS,Hindustan Zinc Limited,02 Apr 2026,486.63
-2026-03-23,11:23,Force Run,TITAN.NS,Titan Company Limited,24 Mar 2026,3853.53
-2026-03-23,11:23,Force Run,ABSLAMC.NS,Aditya Birla Sun Life AMC Limited,30 Mar 2026,891.99
-2026-03-23,11:23,Force Run,HINDALCO.NS,Hindalco Industries Limited,24 Mar 2026,840.8
-2026-03-23,11:23,Force Run,PNB.NS,Punjab National Bank,26 Mar 2026,105.48
-2026-03-23,11:23,Force Run,EICHERMOT.NS,Eicher Motors Limited,25 Mar 2026,6681.39
-2026-03-23,11:23,Force Run,NETWEB.NS,Netweb Technologies India Limited,25 Mar 2026,3089.64
-2026-03-23,11:23,Force Run,LTF.NS,L&T Finance Limited,31 Mar 2026,247.79
-2026-03-23,11:23,Force Run,BEL.NS,Bharat Electronics Limited,27 Mar 2026,405.78
-2026-03-23,11:23,Force Run,CUMMINSIND.NS,Cummins India Limited,27 Mar 2026,4523.98
-2026-03-23,11:23,Force Run,ABB.NS,ABB India Limited,10 Apr 2026,6032.14
-2026-03-23,11:23,Force Run,GMDCLTD.NS,Gujarat Mineral Development Corporation Limited,26 Mar 2026,568.2
-2026-03-23,11:23,Force Run,INDUSTOWER.NS,Indus Towers Limited,02 Apr 2026,413.9
-2026-03-23,11:23,Force Run,MUTHOOTFIN.NS,Muthoot Finance Limited,24 Mar 2026,3116.75
-2026-03-23,11:23,Force Run,BHARATFORG.NS,Bharat Forge Limited,24 Mar 2026,1649.2
-2026-03-23,11:23,Force Run,NAVINFLUOR.NS,Navin Fluorine International Limited,31 Mar 2026,5887.18
-2026-03-23,11:23,Force Run,HINDCOPPER.NS,Hindustan Copper Limited,25 Mar 2026,449.36
-2026-03-23,11:23,Force Run,BHEL.NS,Bharat Heavy Electricals Limited,26 Mar 2026,252.67
-2026-03-23,11:23,Force Run,JKTYRE.NS,JK Tyre & Industries Limited,01 Apr 2026,388.13
-2026-03-23,11:23,Force Run,SBIN.NS,State Bank of India,27 Mar 2026,1030.74
-2026-03-23,11:23,Force Run,CHENNPETRO.NS,Chennai Petroleum Corporation Limited,26 Mar 2026,1004.11
-2026-03-23,11:23,Force Run,CEATLTD.NS,CEAT Limited,24 Mar 2026,3384.29
-2026-03-23,11:23,Force Run,GRSE.NS,Garden Reach Shipbuilders & Engineers Limited,13 Apr 2026,2132.8
-2026-03-23,11:23,Force Run,KARURVYSYA.NS,The Karur Vysya Bank Limited,24 Mar 2026,261.2
-2026-03-23,11:23,Force Run,ADANIPOWER.NS,Adani Power Limited,02 Apr 2026,146.82
-2026-03-23,11:23,Force Run,SHRIRAMFIN.NS,Shriram Finance Limited,24 Mar 2026,877.9
-2026-03-23,11:23,Force Run,VTL.NS,Vardhman Textiles Limited,06 Apr 2026,534.97
-2026-03-23,11:23,Force Run,BANKINDIA.NS,Bank of India Limited,26 Mar 2026,143.62
-2026-03-23,11:23,Force Run,OIL.NS,Oil India Limited,27 Mar 2026,463.61
-2026-03-23,11:23,Force Run,CANBK.NS,Canara Bank,26 Mar 2026,129.62
 2026-03-23,11:23,Force Run,SUNDARMFIN.NS,Sundaram Finance Limited,24 Mar 2026,4534.97
-2026-03-23,11:23,Force Run,GLENMARK.NS,Glenmark Pharmaceuticals Limited,26 Mar 2026,2089.12
 2026-03-23,11:23,Force Run,HYUNDAI.NS,HYUNDAI MOTOR INDIA LTD,26 Mar 2026,1867.28
-2026-03-23,11:23,Force Run,GRANULES.NS,Granules India Limited,08 May 2026,573.11
+2026-03-24,05:23,Live 10:44 IST,HBLENGINE.NS,HBL ENGINEERING LTD,27 Mar 2026,644.58
+2026-03-24,05:23,Live 10:44 IST,SUNTV.NS,Sun TV Network Limited,27 Mar 2026,579.76
+2026-03-24,05:23,Live 10:44 IST,AIAENG.NS,AIA Engineering Limited,25 Mar 2026,3283.44
+2026-03-24,05:23,Live 10:44 IST,ENRIN.NS,Siemens Energy India Limited,26 Mar 2026,2681.72
+2026-03-24,05:23,Live 10:44 IST,IIFL.NS,IIFL Finance Limited,26 Mar 2026,448.54
+2026-03-24,05:23,Live 10:44 IST,ASTRAL.NS,Astral Limited,27 Mar 2026,1562.8
+2026-03-24,05:23,Live 10:44 IST,TIMKEN.NS,Timken India Limited,25 Mar 2026,3100.42
+2026-03-24,05:23,Live 10:44 IST,ACMESOLAR.NS,ACME SOLAR HOLDINGS LTD,02 Apr 2026,238.07
+2026-03-24,05:23,Live 10:44 IST,RRKABEL.NS,R R Kabel Limited,25 Mar 2026,1333.29
+2026-03-24,05:23,Live 10:44 IST,ZFCVINDIA.NS,ZF Commercial Vehicle Control Systems India Limited,26 Mar 2026,13219.93
+2026-03-24,05:23,Live 10:44 IST,SONACOMS.NS,Sona BLW Precision Forgings Limited,26 Mar 2026,482.76
+2026-03-24,05:23,Live 10:44 IST,POONAWALLA.NS,Poonawalla Fincorp Limited,02 Apr 2026,372.58
+2026-03-24,05:23,Live 10:44 IST,ESCORTS.NS,Escorts Kubota Limited,26 Mar 2026,2885.25
+2026-03-24,05:23,Live 10:44 IST,NATCOPHARM.NS,NATCO Pharma Limited,10 Apr 2026,920.9
+2026-03-24,05:23,Live 10:44 IST,BANDHANBNK.NS,Bandhan Bank Limited,26 Mar 2026,146.56
+2026-03-24,05:23,Live 10:44 IST,GODIGIT.NS,GO DIGIT GENERAL INS LTD,03 Apr 2026,319.83
+2026-03-24,05:23,Live 10:44 IST,KPIL.NS,Kalpataru Projects International Limited,01 Apr 2026,1030.65
+2026-03-24,05:23,Live 10:44 IST,TRIVENI.NS,Triveni Engineering & Industries Limited,30 Mar 2026,350.89
+2026-03-24,05:23,Live 10:44 IST,CHOLAFIN.NS,Cholamandalam Investment and Finance Company Limited,25 Mar 2026,1382.06
+2026-03-24,05:23,Live 10:44 IST,WAAREEENER.NS,WAAREE ENERGIES LIMITED,07 Apr 2026,2989.94
+2026-03-24,05:23,Live 10:44 IST,SAMMAANCAP.NS,Sammaan Capital Limited,26 Mar 2026,130.05
+2026-03-24,05:23,Live 10:44 IST,M&MFIN.NS,Mahindra & Mahindra Financial Services Limited,26 Mar 2026,294.54
+2026-03-24,05:23,Live 10:44 IST,AADHARHFC.NS,AADHAR HOUSING FINANCE L,31 Mar 2026,445.75
+2026-03-24,05:23,Live 10:44 IST,ICICIPRULI.NS,ICICI Prudential Life Insurance Company Limited,03 Apr 2026,526.21
+2026-03-24,05:23,Live 10:44 IST,CANFINHOME.NS,Can Fin Homes Limited,01 Apr 2026,821.0
+2026-03-24,05:23,Live 10:44 IST,UNITDSPR.NS,UNITED SPIRITS LIMITED,31 Mar 2026,1287.99
+2026-03-24,05:23,Live 10:44 IST,USHAMART.NS,Usha Martin Limited,25 Mar 2026,392.47
+2026-03-24,05:23,Live 10:44 IST,GRAPHITE.NS,Graphite India Limited,27 Mar 2026,563.26
+2026-03-24,05:23,Live 10:44 IST,LINDEINDIA.NS,Linde India Limited,31 Mar 2026,6979.5
+2026-03-24,05:23,Live 10:44 IST,HEG.NS,HEG Limited,25 Mar 2026,486.5
+2026-03-24,05:23,Live 10:44 IST,KEI.NS,KEI Industries Limited,27 Mar 2026,4028.76
+2026-03-24,05:23,Live 10:44 IST,HINDPETRO.NS,Hindustan Petroleum Corporation Limited,26 Mar 2026,323.98
+2026-03-24,05:23,Live 10:44 IST,ENDURANCE.NS,Endurance Technologies Limited,26 Mar 2026,2193.25
+2026-03-24,05:23,Live 10:44 IST,ASAHIINDIA.NS,Asahi India Glass Limited,25 Mar 2026,778.83
+2026-03-24,05:23,Live 10:44 IST,SIEMENS.NS,Siemens Limited,14 Apr 2026,2979.02
+2026-03-24,05:23,Live 10:44 IST,PAYTM.NS,One97 Communications Limited,27 Mar 2026,1010.72
+2026-03-24,05:23,Live 10:44 IST,APLAPOLLO.NS,APL Apollo Tubes Limited,25 Mar 2026,1919.29
+2026-03-24,05:23,Live 10:44 IST,POLYCAB.NS,Polycab India Limited,27 Mar 2026,6844.9
+2026-03-24,05:23,Live 10:44 IST,EMCURE.NS,EMCURE PHARMACEUTICALS L,25 Mar 2026,1506.19
+2026-03-24,05:23,Live 10:44 IST,PETRONET.NS,Petronet LNG Limited,25 Mar 2026,238.5
+2026-03-24,05:23,Live 10:44 IST,COCHINSHIP.NS,Cochin Shipyard Limited,26 Mar 2026,1283.17
+2026-03-24,05:23,Live 10:44 IST,SCHAEFFLER.NS,Schaeffler India Limited,26 Mar 2026,3890.41
+2026-03-24,05:23,Live 10:44 IST,MARICO.NS,Marico Limited,25 Mar 2026,729.52
+2026-03-24,05:23,Live 10:44 IST,ENGINERSIN.NS,Engineers India Limited,26 Mar 2026,183.42
+2026-03-24,05:23,Live 10:44 IST,AIIL.NS,Authum Investment & Infrastructure Limited,30 Mar 2026,481.97
+2026-03-24,05:23,Live 10:44 IST,MRPL.NS,Mangalore Refinery and Petrochemicals Limited,26 Mar 2026,175.93
+2026-03-24,05:23,Live 10:44 IST,LTFOODS.NS,LT Foods Limited,26 Mar 2026,369.07
+2026-03-24,05:23,Live 10:44 IST,SAILIFE.NS,SAI LIFE SCIENCES LIMITED,27 Mar 2026,992.2
+2026-03-24,05:23,Live 10:44 IST,SCI.NS,The Shipping Corporation of India Limited,26 Mar 2026,223.82
+2026-03-24,05:23,Live 10:44 IST,RBLBANK.NS,RBL Bank Limited,26 Mar 2026,292.08
+2026-03-24,05:23,Live 10:44 IST,SYRMA.NS,Syrma SGS Technology Limited,02 Apr 2026,756.03
+2026-03-24,05:23,Live 10:44 IST,UNOMINDA.NS,Uno Minda Limited,26 Mar 2026,1048.82
+2026-03-24,05:23,Live 10:44 IST,HEROMOTOCO.NS,Hero MotoCorp Limited,26 Mar 2026,5127.38
+2026-03-24,05:23,Live 10:44 IST,AUBANK.NS,AU Small Finance Bank Limited,26 Mar 2026,860.45
+2026-03-24,05:23,Live 10:44 IST,IOC.NS,Indian Oil Corporation Limited,26 Mar 2026,137.21
+2026-03-24,05:23,Live 10:44 IST,DATAPATTNS.NS,Data Patterns (India) Limited,27 Mar 2026,3104.3
+2026-03-24,05:23,Live 10:44 IST,HAL.NS,Hindustan Aeronautics Limited,27 Mar 2026,3618.73
+2026-03-24,05:23,Live 10:44 IST,AXISBANK.NS,Axis Bank Limited,25 Mar 2026,1173.04
+2026-03-24,05:23,Live 10:44 IST,BPCL.NS,Bharat Petroleum Corporation Limited,26 Mar 2026,275.0
+2026-03-24,05:23,Live 10:44 IST,JBCHEPHARM.NS,J. B. Chemicals & Pharmaceuticals Limited,27 Mar 2026,2061.21
+2026-03-24,05:23,Live 10:44 IST,ABCAPITAL.NS,Aditya Birla Capital Limited,26 Mar 2026,297.61
+2026-03-24,05:23,Live 10:44 IST,ATHERENERG.NS,Ather Energy Limited,31 Mar 2026,750.72
+2026-03-24,05:23,Live 10:44 IST,SAIL.NS,Steel Authority of India Limited,26 Mar 2026,143.91
+2026-03-24,05:23,Live 10:44 IST,ADANIENSOL.NS,Adani Energy Solutions Limited,25 Mar 2026,943.15
+2026-03-24,05:23,Live 10:44 IST,CRAFTSMAN.NS,Craftsman Automation Limited,26 Mar 2026,6688.21
+2026-03-24,05:23,Live 10:44 IST,HINDZINC.NS,Hindustan Zinc Limited,02 Apr 2026,485.13
+2026-03-24,05:23,Live 10:44 IST,CUB.NS,City Union Bank Limited,26 Mar 2026,235.39
+2026-03-24,05:23,Live 10:44 IST,NYKAA.NS,FSN E-Commerce Ventures Limited,26 Mar 2026,234.03
+2026-03-24,05:23,Live 10:44 IST,MOTHERSON.NS,Samvardhana Motherson International Limited,26 Mar 2026,107.1
+2026-03-24,05:23,Live 10:44 IST,JINDALSTEL.NS,Jindal Steel Limited,26 Mar 2026,1115.26
+2026-03-24,05:23,Live 10:44 IST,TITAN.NS,Titan Company Limited,24 Mar 2026,3853.43
+2026-03-24,05:23,Live 10:44 IST,JKTYRE.NS,JK Tyre & Industries Limited,01 Apr 2026,397.31
+2026-03-24,05:23,Live 10:44 IST,FEDERALBNK.NS,The Federal Bank Limited,26 Mar 2026,259.07
+2026-03-24,05:23,Live 10:44 IST,NAM-INDIA.NS,Nippon Life India Asset Management Limited,07 Apr 2026,822.88
+2026-03-24,05:23,Live 10:44 IST,TATASTEEL.NS,Tata Steel Limited,26 Mar 2026,188.91
+2026-03-24,05:23,Live 10:44 IST,GESHIP.NS,The Great Eastern Shipping Company Limited,26 Mar 2026,1387.36
+2026-03-24,05:23,Live 10:44 IST,EICHERMOT.NS,Eicher Motors Limited,25 Mar 2026,6815.59
+2026-03-24,05:23,Live 10:44 IST,BANKBARODA.NS,Bank of Baroda Limited,26 Mar 2026,266.47
+2026-03-24,05:23,Live 10:44 IST,HINDALCO.NS,Hindalco Industries Limited,25 Mar 2026,846.07
+2026-03-24,05:23,Live 10:44 IST,NETWEB.NS,Netweb Technologies India Limited,25 Mar 2026,3136.83
+2026-03-24,05:23,Live 10:44 IST,LTF.NS,L&T Finance Limited,31 Mar 2026,250.51
+2026-03-24,05:23,Live 10:44 IST,MUTHOOTFIN.NS,Muthoot Finance Limited,25 Mar 2026,3058.86
+2026-03-24,05:23,Live 10:44 IST,VTL.NS,Vardhman Textiles Limited,02 Apr 2026,530.13
+2026-03-24,05:23,Live 10:44 IST,GMDCLTD.NS,Gujarat Mineral Development Corporation Limited,26 Mar 2026,567.76
+2026-03-24,05:23,Live 10:44 IST,BHARATFORG.NS,Bharat Forge Limited,27 Mar 2026,1657.62
+2026-03-24,05:23,Live 10:44 IST,CHENNPETRO.NS,Chennai Petroleum Corporation Limited,26 Mar 2026,958.03
+2026-03-24,05:23,Live 10:44 IST,JSWSTEEL.NS,JSW Steel Limited,25 Mar 2026,1118.24
+2026-03-24,05:23,Live 10:44 IST,BEL.NS,Bharat Electronics Limited,27 Mar 2026,409.53
+2026-03-24,05:23,Live 10:44 IST,AUROPHARMA.NS,Aurobindo Pharma Limited,25 Mar 2026,1261.66
+2026-03-24,05:23,Live 10:44 IST,HINDCOPPER.NS,Hindustan Copper Limited,25 Mar 2026,449.03
+2026-03-24,05:23,Live 10:44 IST,ABSLAMC.NS,Aditya Birla Sun Life AMC Limited,30 Mar 2026,896.3
+2026-03-24,05:23,Live 10:44 IST,ABB.NS,ABB India Limited,10 Apr 2026,6043.32
+2026-03-24,05:23,Live 10:44 IST,INDUSTOWER.NS,Indus Towers Limited,02 Apr 2026,417.22
+2026-03-24,05:23,Live 10:44 IST,NAVINFLUOR.NS,Navin Fluorine International Limited,31 Mar 2026,5982.67
+2026-03-24,05:23,Live 10:44 IST,SBIN.NS,State Bank of India,27 Mar 2026,1032.85
+2026-03-24,05:23,Live 10:44 IST,CEATLTD.NS,CEAT Limited,30 Mar 2026,3411.97
+2026-03-24,05:23,Live 10:44 IST,CUMMINSIND.NS,Cummins India Limited,27 Mar 2026,4592.5
+2026-03-24,05:23,Live 10:44 IST,KARURVYSYA.NS,The Karur Vysya Bank Limited,25 Mar 2026,264.2
+2026-03-24,05:23,Live 10:44 IST,APARINDS.NS,APAR Industries Limited,24 Apr 2026,9664.89
+2026-03-24,05:23,Live 10:44 IST,BHEL.NS,Bharat Heavy Electricals Limited,26 Mar 2026,252.58
+2026-03-24,05:23,Live 10:44 IST,GRSE.NS,Garden Reach Shipbuilders & Engineers Limited,13 Apr 2026,2112.18
+2026-03-24,05:23,Live 10:44 IST,BHARTIHEXA.NS,BHARTI HEXACOM LIMITED,25 Mar 2026,1535.39
+2026-03-24,05:23,Live 10:44 IST,OIL.NS,Oil India Limited,27 Mar 2026,467.64
+2026-03-24,05:23,Live 10:44 IST,BANKINDIA.NS,Bank of India Limited,26 Mar 2026,145.59
+2026-03-24,05:23,Live 10:44 IST,GRANULES.NS,Granules India Limited,08 May 2026,574.56
+2026-03-24,05:23,Live 10:44 IST,GLENMARK.NS,Glenmark Pharmaceuticals Limited,26 Mar 2026,2092.24
+2026-03-24,05:23,Live 10:44 IST,SHRIRAMFIN.NS,Shriram Finance Limited,02 Apr 2026,904.32
+2026-03-24,05:23,Live 10:44 IST,PNB.NS,Punjab National Bank,26 Mar 2026,106.01
+2026-03-24,05:23,Live 10:44 IST,VOLTAS.NS,Voltas Limited,27 Mar 2026,1262.05
+2026-03-24,05:23,Live 10:44 IST,ADANIPOWER.NS,Adani Power Limited,07 Apr 2026,146.83
+2026-03-24,05:23,Live 10:44 IST,CANBK.NS,Canara Bank,26 Mar 2026,131.81

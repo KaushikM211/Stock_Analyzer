@@ -3,8 +3,8 @@
 # ─────────────────────────────────────────────
 
 # Stock price filter (overall bounds)
-LOWER_LIMIT = 100
-UPPER_LIMIT = 15000
+LOWER_LIMIT = 0
+UPPER_LIMIT = 20000
 
 # Max stocks from same sector per price band (Email 1)
 # Raised from 2 to 3 — with 10 picks per band, allowing 3 per sector

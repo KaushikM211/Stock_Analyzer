@@ -17,7 +17,7 @@ MAX_SECTOR_PER_PORTFOLIO = 3
 # Price band buckets — ₹500 windows within lower/upper limits
 # Each bucket gets its own top-N picks in the final output
 PRICE_BANDS = [
-    (100, 500),
+    (0, 500),
     (500, 1000),
     (1000, 1500),
     (1500, 2000),

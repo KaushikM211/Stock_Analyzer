@@ -474,3 +474,79 @@ Scan_Date,Run_Time,Run_Label,Stock,Company_Name,Predicted_Buy_Date,Predicted_Buy
 2026-04-01,10:42,Live 16:03 IST,BANKINDIA.NS,Bank of India Limited,02 Apr 2026,141.9,139.5,2026-04-02,-1.69,UNDER,True,
 2026-04-01,10:42,Live 16:03 IST,CEATLTD.NS,CEAT Limited,02 Apr 2026,3386.83,3326.0,2026-04-02,-1.8,UNDER,True,
 2026-04-01,10:42,Live 16:03 IST,KARURVYSYA.NS,The Karur Vysya Bank Limited,02 Apr 2026,292.28,288.9,2026-04-02,-1.16,UNDER,True,
+2026-03-23,10:38,Live 16:01 IST,BDL.NS,Bharat Dynamics Limited,03 Apr 2026,1155.49,1189.8,2026-04-06,2.97,OVER,True,Checked on 2026-04-06 (next trading day after 03 Apr 2026)
+2026-03-27,10:20,Live 15:40 IST,BANDHANBNK.NS,Bandhan Bank Limited,03 Apr 2026,149.08,148.0,2026-04-06,-0.72,UNDER,True,Checked on 2026-04-06 (next trading day after 03 Apr 2026)
+2026-03-30,10:52,Live 16:13 IST,SUNDARMFIN.NS,Sundaram Finance Limited,06 Apr 2026,4372.18,4538.0,2026-04-06,3.79,OVER,False,
+2026-04-02,06:05,Force Run,JSWSTEEL.NS,JSW Steel Limited,06 Apr 2026,1113.27,1132.0,2026-04-06,1.68,OVER,True,
+2026-04-02,07:01,Live 12:23 IST,ENGINERSIN.NS,Engineers India Limited,03 Apr 2026,193.44,199.0,2026-04-06,2.87,OVER,True,Checked on 2026-04-06 (next trading day after 03 Apr 2026)
+2026-04-02,07:01,Live 12:23 IST,HINDCOPPER.NS,Hindustan Copper Limited,06 Apr 2026,476.57,492.5,2026-04-06,3.34,OVER,False,
+2026-04-02,07:01,Live 12:23 IST,UNIONBANK.NS,Union Bank of India,03 Apr 2026,165.2,173.1,2026-04-06,4.78,OVER,False,Checked on 2026-04-06 (next trading day after 03 Apr 2026)
+2026-04-02,09:16,Live 14:36 IST,ADANIENSOL.NS,Adani Energy Solutions Limited,03 Apr 2026,928.58,941.9,2026-04-06,1.43,OVER,True,Checked on 2026-04-06 (next trading day after 03 Apr 2026)
+2026-04-02,09:54,Live 15:15 IST,AJANTPHARM.NS,Ajanta Pharma Limited,06 Apr 2026,2790.74,2810.0,2026-04-06,0.69,OVER,True,
+2026-04-02,09:54,Live 15:15 IST,GLENMARK.NS,Glenmark Pharmaceuticals Limited,03 Apr 2026,2097.8,2079.3,2026-04-06,-0.88,UNDER,True,Checked on 2026-04-06 (next trading day after 03 Apr 2026)
+2026-04-02,10:37,Live 15:59 IST,HBLENGINE.NS,HBL ENGINEERING LTD,06 Apr 2026,667.31,666.95,2026-04-06,-0.05,UNDER,True,
+2026-04-02,10:37,Live 15:59 IST,ASTRAL.NS,Astral Limited,03 Apr 2026,1554.72,1553.5,2026-04-06,-0.08,UNDER,True,Checked on 2026-04-06 (next trading day after 03 Apr 2026)
+2026-04-02,10:37,Live 15:59 IST,SUNTV.NS,Sun TV Network Limited,03 Apr 2026,594.6,587.5,2026-04-06,-1.19,UNDER,True,Checked on 2026-04-06 (next trading day after 03 Apr 2026)
+2026-04-02,10:37,Live 15:59 IST,RRKABEL.NS,R R Kabel Limited,03 Apr 2026,1335.27,1339.9,2026-04-06,0.35,OVER,True,Checked on 2026-04-06 (next trading day after 03 Apr 2026)
+2026-04-02,10:37,Live 15:59 IST,SONACOMS.NS,Sona BLW Precision Forgings Limited,06 Apr 2026,496.04,499.5,2026-04-06,0.7,OVER,True,
+2026-04-02,10:37,Live 15:59 IST,MSUMI.NS,Motherson Sumi Wiring India Limited,06 Apr 2026,37.06,37.07,2026-04-06,0.03,OVER,True,
+2026-04-02,10:37,Live 15:59 IST,SUPREMEIND.NS,The Supreme Industries Limited,03 Apr 2026,3638.72,3649.2,2026-04-06,0.29,OVER,True,Checked on 2026-04-06 (next trading day after 03 Apr 2026)
+2026-04-02,10:37,Live 15:59 IST,ATUL.NS,Atul Ltd,06 Apr 2026,6292.66,6300.0,2026-04-06,0.12,OVER,True,
+2026-04-02,10:37,Live 15:59 IST,ESCORTS.NS,Escorts Kubota Limited,03 Apr 2026,2842.29,2842.1,2026-04-06,-0.01,UNDER,True,Checked on 2026-04-06 (next trading day after 03 Apr 2026)
+2026-04-02,10:37,Live 15:59 IST,POONAWALLA.NS,Poonawalla Fincorp Limited,06 Apr 2026,391.98,394.0,2026-04-06,0.52,OVER,True,
+2026-04-02,10:37,Live 15:59 IST,AIIL.NS,Authum Investment & Infrastructure Limited,03 Apr 2026,419.83,419.65,2026-04-06,-0.04,UNDER,True,Checked on 2026-04-06 (next trading day after 03 Apr 2026)
+2026-04-02,10:37,Live 15:59 IST,CHOLAFIN.NS,Cholamandalam Investment and Finance Company Limited,03 Apr 2026,1356.01,1373.6,2026-04-06,1.3,OVER,True,Checked on 2026-04-06 (next trading day after 03 Apr 2026)
+2026-04-02,10:37,Live 15:59 IST,BELRISE.NS,BELRISE INDUSTRIES LTD,06 Apr 2026,190.97,193.0,2026-04-06,1.06,OVER,True,
+2026-04-02,10:37,Live 15:59 IST,M&MFIN.NS,Mahindra & Mahindra Financial Services Limited,06 Apr 2026,284.62,287.4,2026-04-06,0.98,OVER,True,
+2026-04-02,10:37,Live 15:59 IST,AIAENG.NS,AIA Engineering Limited,06 Apr 2026,3679.15,3642.1,2026-04-06,-1.01,UNDER,True,
+2026-04-02,10:37,Live 15:59 IST,VOLTAS.NS,Voltas Limited,06 Apr 2026,1235.01,1225.0,2026-04-06,-0.81,UNDER,True,
+2026-04-02,10:37,Live 15:59 IST,TIMKEN.NS,Timken India Limited,03 Apr 2026,3350.54,3347.8,2026-04-06,-0.08,UNDER,True,Checked on 2026-04-06 (next trading day after 03 Apr 2026)
+2026-04-02,10:37,Live 15:59 IST,ZFCVINDIA.NS,ZF Commercial Vehicle Control Systems India Limited,06 Apr 2026,13996.09,13930.0,2026-04-06,-0.47,UNDER,True,
+2026-04-02,10:37,Live 15:59 IST,AADHARHFC.NS,AADHAR HOUSING FINANCE L,03 Apr 2026,439.5,443.0,2026-04-06,0.8,OVER,True,Checked on 2026-04-06 (next trading day after 03 Apr 2026)
+2026-04-02,10:37,Live 15:59 IST,USHAMART.NS,Usha Martin Limited,06 Apr 2026,405.87,404.5,2026-04-06,-0.34,UNDER,True,
+2026-04-02,10:37,Live 15:59 IST,HINDPETRO.NS,Hindustan Petroleum Corporation Limited,06 Apr 2026,326.11,326.0,2026-04-06,-0.03,UNDER,True,
+2026-04-02,10:37,Live 15:59 IST,CANFINHOME.NS,Can Fin Homes Limited,03 Apr 2026,821.52,814.4,2026-04-06,-0.87,UNDER,True,Checked on 2026-04-06 (next trading day after 03 Apr 2026)
+2026-04-02,10:37,Live 15:59 IST,POLYCAB.NS,Polycab India Limited,03 Apr 2026,6881.69,6925.0,2026-04-06,0.63,OVER,True,Checked on 2026-04-06 (next trading day after 03 Apr 2026)
+2026-04-02,10:37,Live 15:59 IST,COCHINSHIP.NS,Cochin Shipyard Limited,06 Apr 2026,1313.75,1310.0,2026-04-06,-0.29,UNDER,True,
+2026-04-02,10:37,Live 15:59 IST,PAYTM.NS,One97 Communications Limited,03 Apr 2026,1006.37,1002.0,2026-04-06,-0.43,UNDER,True,Checked on 2026-04-06 (next trading day after 03 Apr 2026)
+2026-04-02,10:37,Live 15:59 IST,APLAPOLLO.NS,APL Apollo Tubes Limited,03 Apr 2026,1899.99,1904.9,2026-04-06,0.26,OVER,True,Checked on 2026-04-06 (next trading day after 03 Apr 2026)
+2026-04-02,10:37,Live 15:59 IST,JKTYRE.NS,JK Tyre & Industries Limited,03 Apr 2026,388.49,390.05,2026-04-06,0.4,OVER,True,Checked on 2026-04-06 (next trading day after 03 Apr 2026)
+2026-04-02,10:37,Live 15:59 IST,SAILIFE.NS,SAI LIFE SCIENCES LIMITED,06 Apr 2026,960.14,964.0,2026-04-06,0.4,OVER,True,
+2026-04-02,10:37,Live 15:59 IST,TEGA.NS,Tega Industries Limited,06 Apr 2026,1724.73,1704.0,2026-04-06,-1.2,UNDER,True,
+2026-04-02,10:37,Live 15:59 IST,AUBANK.NS,AU Small Finance Bank Limited,03 Apr 2026,867.77,880.95,2026-04-06,1.52,OVER,True,Checked on 2026-04-06 (next trading day after 03 Apr 2026)
+2026-04-02,10:37,Live 15:59 IST,DATAPATTNS.NS,Data Patterns (India) Limited,06 Apr 2026,3054.12,3068.0,2026-04-06,0.45,OVER,True,
+2026-04-02,10:37,Live 15:59 IST,UNITDSPR.NS,UNITED SPIRITS LIMITED,03 Apr 2026,1221.94,1225.2,2026-04-06,0.27,OVER,True,Checked on 2026-04-06 (next trading day after 03 Apr 2026)
+2026-04-02,10:37,Live 15:59 IST,MAHABANK.NS,Bank of Maharashtra,03 Apr 2026,63.89,64.22,2026-04-06,0.52,OVER,True,Checked on 2026-04-06 (next trading day after 03 Apr 2026)
+2026-04-02,10:37,Live 15:59 IST,UNOMINDA.NS,Uno Minda Limited,06 Apr 2026,1024.15,1033.9,2026-04-06,0.95,OVER,True,
+2026-04-02,10:37,Live 15:59 IST,ABCAPITAL.NS,Aditya Birla Capital Limited,06 Apr 2026,298.5,299.6,2026-04-06,0.37,OVER,True,
+2026-04-02,10:37,Live 15:59 IST,BANKBARODA.NS,Bank of Baroda Limited,06 Apr 2026,249.62,252.61,2026-04-06,1.2,OVER,True,
+2026-04-02,10:37,Live 15:59 IST,MARICO.NS,Marico Limited,06 Apr 2026,761.48,764.0,2026-04-06,0.33,OVER,True,
+2026-04-02,10:37,Live 15:59 IST,SCI.NS,The Shipping Corporation of India Limited,06 Apr 2026,228.09,230.0,2026-04-06,0.84,OVER,True,
+2026-04-02,10:37,Live 15:59 IST,CRAFTSMAN.NS,Craftsman Automation Limited,03 Apr 2026,6801.6,6789.5,2026-04-06,-0.18,UNDER,True,Checked on 2026-04-06 (next trading day after 03 Apr 2026)
+2026-04-02,10:37,Live 15:59 IST,VTL.NS,Vardhman Textiles Limited,03 Apr 2026,536.18,535.0,2026-04-06,-0.22,UNDER,True,Checked on 2026-04-06 (next trading day after 03 Apr 2026)
+2026-04-02,10:37,Live 15:59 IST,GRSE.NS,Garden Reach Shipbuilders & Engineers Limited,03 Apr 2026,2255.02,2270.0,2026-04-06,0.66,OVER,True,Checked on 2026-04-06 (next trading day after 03 Apr 2026)
+2026-04-02,10:37,Live 15:59 IST,HINDZINC.NS,Hindustan Zinc Limited,06 Apr 2026,514.2,515.75,2026-04-06,0.3,OVER,True,
+2026-04-02,10:37,Live 15:59 IST,LTF.NS,L&T Finance Limited,03 Apr 2026,240.48,243.9,2026-04-06,1.42,OVER,True,Checked on 2026-04-06 (next trading day after 03 Apr 2026)
+2026-04-02,10:37,Live 15:59 IST,CUB.NS,City Union Bank Limited,06 Apr 2026,240.32,242.89,2026-04-06,1.07,OVER,True,
+2026-04-02,10:37,Live 15:59 IST,EICHERMOT.NS,Eicher Motors Limited,03 Apr 2026,6651.48,6699.0,2026-04-06,0.71,OVER,True,Checked on 2026-04-06 (next trading day after 03 Apr 2026)
+2026-04-02,10:37,Live 15:59 IST,GESHIP.NS,The Great Eastern Shipping Company Limited,06 Apr 2026,1439.4,1439.6,2026-04-06,0.01,OVER,True,
+2026-04-02,10:37,Live 15:59 IST,SBIN.NS,State Bank of India,06 Apr 2026,1017.68,1020.0,2026-04-06,0.23,OVER,True,
+2026-04-02,10:37,Live 15:59 IST,NAVINFLUOR.NS,Navin Fluorine International Limited,06 Apr 2026,5897.32,5891.0,2026-04-06,-0.11,UNDER,True,
+2026-04-02,10:37,Live 15:59 IST,NYKAA.NS,FSN E-Commerce Ventures Limited,06 Apr 2026,245.55,246.3,2026-04-06,0.31,OVER,True,
+2026-04-02,10:37,Live 15:59 IST,MUTHOOTFIN.NS,Muthoot Finance Limited,06 Apr 2026,3179.2,3196.1,2026-04-06,0.53,OVER,True,
+2026-04-02,10:37,Live 15:59 IST,JINDALSTEL.NS,Jindal Steel Limited,06 Apr 2026,1136.79,1131.0,2026-04-06,-0.51,UNDER,True,
+2026-04-02,10:37,Live 15:59 IST,INDUSTOWER.NS,Indus Towers Limited,06 Apr 2026,424.3,422.0,2026-04-06,-0.54,UNDER,True,
+2026-04-02,10:37,Live 15:59 IST,TATASTEEL.NS,Tata Steel Limited,06 Apr 2026,194.06,193.02,2026-04-06,-0.54,UNDER,True,
+2026-04-02,10:37,Live 15:59 IST,SAIL.NS,Steel Authority of India Limited,06 Apr 2026,155.11,153.9,2026-04-06,-0.78,UNDER,True,
+2026-04-02,10:37,Live 15:59 IST,CUMMINSIND.NS,Cummins India Limited,06 Apr 2026,4648.56,4680.2,2026-04-06,0.68,OVER,True,
+2026-04-02,10:37,Live 15:59 IST,BHEL.NS,Bharat Heavy Electricals Limited,06 Apr 2026,248.24,249.41,2026-04-06,0.47,OVER,True,
+2026-04-02,10:37,Live 15:59 IST,KARURVYSYA.NS,The Karur Vysya Bank Limited,06 Apr 2026,272.79,275.0,2026-04-06,0.81,OVER,True,
+2026-04-02,10:37,Live 15:59 IST,BEL.NS,Bharat Electronics Limited,03 Apr 2026,422.13,422.0,2026-04-06,-0.03,UNDER,True,Checked on 2026-04-06 (next trading day after 03 Apr 2026)
+2026-04-02,10:37,Live 15:59 IST,BANKINDIA.NS,Bank of India Limited,03 Apr 2026,139.22,140.38,2026-04-06,0.83,OVER,True,Checked on 2026-04-06 (next trading day after 03 Apr 2026)
+2026-04-02,10:37,Live 15:59 IST,SHRIRAMFIN.NS,Shriram Finance Limited,06 Apr 2026,891.19,895.0,2026-04-06,0.43,OVER,True,
+2026-04-02,10:37,Live 15:59 IST,CEATLTD.NS,CEAT Limited,06 Apr 2026,3373.1,3370.0,2026-04-06,-0.09,UNDER,True,
+2026-04-02,10:37,Live 15:59 IST,GMDCLTD.NS,Gujarat Mineral Development Corporation Limited,03 Apr 2026,581.25,581.0,2026-04-06,-0.04,UNDER,True,Checked on 2026-04-06 (next trading day after 03 Apr 2026)
+2026-04-02,10:37,Live 15:59 IST,HINDALCO.NS,Hindalco Industries Limited,06 Apr 2026,916.39,917.2,2026-04-06,0.09,OVER,True,
+2026-04-02,10:37,Live 15:59 IST,KPIL.NS,Kalpataru Projects International Limited,03 Apr 2026,1104.3,1092.0,2026-04-06,-1.11,UNDER,True,Checked on 2026-04-06 (next trading day after 03 Apr 2026)
+2026-04-02,10:37,Live 15:59 IST,CANBK.NS,Canara Bank,06 Apr 2026,127.02,127.2,2026-04-06,0.14,OVER,True,
+2026-04-02,10:37,Live 15:59 IST,TORNTPHARM.NS,Torrent Pharmaceuticals Limited,03 Apr 2026,3991.2,3987.2,2026-04-06,-0.1,UNDER,True,Checked on 2026-04-06 (next trading day after 03 Apr 2026)

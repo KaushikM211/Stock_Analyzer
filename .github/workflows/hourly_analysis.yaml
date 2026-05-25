@@ -2,21 +2,19 @@ name: NSE Stock Analysis
 
 on:
   schedule:
-    # Mon–Fri schedule (all times IST, converted to UTC)
-    # First run at 9:20 AM — market opens 9:15 AM, 5 mins of price action
-    # available before accuracy check. Scan follows immediately after.
-    - cron: "20 2 * * 1-5"  # 08:20 IST
-    - cron: "00 3 * * 1-5"  # 09:00 IST
-    - cron: "40 3 * * 1-5"  # 09:40 IST
-    - cron: "20 4 * * 1-5"  # 10:20 IST
-    - cron: "00 5 * * 1-5"  # 11:00 IST
-    - cron: "40 5 * * 1-5"  # 11:40 IST
-    - cron: "20 6 * * 1-5"  # 12:20 IST
-    - cron: "00 7 * * 1-5"  # 13:00 IST
-    - cron: "40 7 * * 1-5"  # 13:40 IST
-    - cron: "20 8 * * 1-5"  # 14:20 IST
-    - cron: "00 9 * * 1-5"  # 15:00 IST
-    - cron: "30 9 * * 1-5"  # 15:30 IST
+    # Shifted to irregular, off-peak minutes to bypass GitHub queue congestion.
+    - cron: "23 9 * * 1-5"  # 09:23 IST (First Run / Accuracy Check)
+    - cron: "07 10 * * 1-5" # 10:07 IST
+    - cron: "43 10 * * 1-5" # 10:43 IST
+    - cron: "22 11 * * 1-5" # 11:22 IST
+    - cron: "03 12 * * 1-5" # 12:03 IST
+    - cron: "41 12 * * 1-5" # 12:41 IST
+    - cron: "18 13 * * 1-5" # 13:18 IST
+    - cron: "04 14 * * 1-5" # 14:04 IST
+    - cron: "39 14 * * 1-5" # 14:39 IST
+    - cron: "17 15 * * 1-5" # 15:17 IST
+    - cron: "34 15 * * 1-5" # 15:34 IST
+      timezone: "Asia/Kolkata"
 
   workflow_dispatch:
     inputs:
@@ -77,26 +75,15 @@ jobs:
             echo "run_label=${{ github.event.inputs.run_label }}" >> $GITHUB_OUTPUT
             echo "is_first_run=false"                            >> $GITHUB_OUTPUT
           else
-            HOUR=$(date -u +%-H)
-            MIN=$(date -u +%-M)
-            UTC_TOTAL=$(( HOUR * 60 + MIN ))
-            IST_TOTAL=$(( UTC_TOTAL + 330 ))
-            IST_H=$(( IST_TOTAL / 60 % 24 ))
-            IST_M=$(( IST_TOTAL % 60 ))
-            if [ "$IST_M" -lt 10 ]; then
-              IST_LABEL="${IST_H}:0${IST_M} IST"
-            else
-              IST_LABEL="${IST_H}:${IST_M} IST"
-            fi
+            # Calculate dynamic IST labels directly
+            export TZ="Asia/Kolkata"
+            IST_LABEL=$(date +"%H:%M IST")
 
-            # Detect first run of day by checking if prediction_log.csv
-            # was already committed today — more reliable than clock time
-            # because GitHub cron delays can be 15-60 mins on free plans
-            TODAY=$(date -u +%Y-%m-%d)
+            # Check if prediction_log.csv was already updated today in IST
+            TODAY=$(date +"%Y-%m-%d")
             LAST_COMMIT_DATE=$(git log -1 --format="%ci" -- prediction_log.csv 2>/dev/null | cut -d' ' -f1)
 
             if [ "$LAST_COMMIT_DATE" != "$TODAY" ]; then
-              # prediction_log.csv not yet updated today → this is the first run
               echo "run_type=daily"               >> $GITHUB_OUTPUT
               echo "run_label=Daily ${IST_LABEL}" >> $GITHUB_OUTPUT
               echo "is_first_run=true"            >> $GITHUB_OUTPUT
@@ -108,10 +95,6 @@ jobs:
           fi
 
       - name: Run accuracy check
-        # Runs BEFORE the scan on the 9:20 AM job only.
-        # Market has been open ~5 mins — day Low is already forming.
-        # Validates yesterday's predictions for today against today's intraday Low.
-        # You still have the full trading day ahead to act on the signal.
         if: ${{ steps.detect.outputs.is_first_run == 'true' }}
         env:
           GMAIL_SENDER:      ${{ secrets.GMAIL_SENDER }}

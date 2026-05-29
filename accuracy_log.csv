@@ -1571,3 +1571,13 @@ Scan_Date,Run_Time,Run_Label,Stock,Company_Name,Predicted_Buy_Date,Predicted_Buy
 2026-05-22,12:14,Live 17:32 IST,CEMPRO.NS,Cemindia Projects Limited,27 May 2026,859.22,950.0,2026-05-27,10.57,OVER,False,
 2026-05-22,12:14,Live 17:32 IST,AUBANK.NS,AU Small Finance Bank Limited,27 May 2026,977.67,1011.7,2026-05-27,3.48,OVER,False,
 2026-05-22,12:14,Live 17:32 IST,IGIL.NS,International Gemological Institute Limited,27 May 2026,371.46,385.0,2026-05-27,3.65,OVER,False,
+2026-04-10,10:12,Live 15:27 IST,GRANULES.NS,Granules India Limited,28 May 2026,623.89,795.0,2026-05-29,27.43,OVER,False,Checked on 2026-05-29 (next trading day after 28 May 2026)
+2026-04-24,10:58,Live 16:19 IST,LTF.NS,L&T Finance Limited,29 May 2026,288.01,285.0,2026-05-29,-1.05,UNDER,True,
+2026-05-11,12:39,Live 17:56 IST,APARINDS.NS,APAR Industries Limited,29 May 2026,12822.34,13500.0,2026-05-29,5.28,OVER,False,
+2026-05-19,12:38,Live 17:54 IST,MRPL.NS,Mangalore Refinery and Petrochemicals Limited,29 May 2026,145.25,150.7,2026-05-29,3.75,OVER,False,
+2026-05-22,11:30,Live 16:49 IST,GRAPHITE.NS,Graphite India Limited,29 May 2026,739.27,736.05,2026-05-29,-0.44,UNDER,True,
+2026-05-22,12:14,Live 17:32 IST,VEDL.NS,Vedanta Limited,29 May 2026,327.9,359.95,2026-05-29,9.77,OVER,False,
+2026-05-22,12:14,Live 17:32 IST,NATCOPHARM.NS,NATCO Pharma Limited,28 May 2026,1168.11,1161.3,2026-05-29,-0.58,UNDER,True,Checked on 2026-05-29 (next trading day after 28 May 2026)
+2026-05-22,12:14,Live 17:32 IST,JBCHEPHARM.NS,J. B. Chemicals & Pharmaceuticals Limited,28 May 2026,2191.89,2204.2,2026-05-29,0.56,OVER,True,Checked on 2026-05-29 (next trading day after 28 May 2026)
+2026-05-22,12:14,Live 17:32 IST,HINDZINC.NS,Hindustan Zinc Limited,28 May 2026,632.86,652.95,2026-05-29,3.17,OVER,False,Checked on 2026-05-29 (next trading day after 28 May 2026)
+2026-05-22,12:14,Live 17:32 IST,ENGINERSIN.NS,Engineers India Limited,29 May 2026,215.54,235.95,2026-05-29,9.47,OVER,False,

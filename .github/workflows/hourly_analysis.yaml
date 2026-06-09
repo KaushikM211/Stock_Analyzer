@@ -1,130 +1,118 @@
-name: NSE Stock Analysis
+name: NSE Stock Analyzer
 
 on:
   schedule:
-    # Shifted to irregular, off-peak minutes to bypass GitHub queue congestion.
-    - cron: "23 9 * * 1-5"  # 09:23 IST (First Run / Accuracy Check)
-    - cron: "07 10 * * 1-5" # 10:07 IST
-    - cron: "43 10 * * 1-5" # 10:43 IST
-    - cron: "22 11 * * 1-5" # 11:22 IST
-    - cron: "03 12 * * 1-5" # 12:03 IST
-    - cron: "41 12 * * 1-5" # 12:41 IST
-    - cron: "18 13 * * 1-5" # 13:18 IST
-    - cron: "04 14 * * 1-5" # 14:04 IST
-    - cron: "39 14 * * 1-5" # 14:39 IST
-    - cron: "17 15 * * 1-5" # 15:17 IST
-    - cron: "34 15 * * 1-5" # 15:34 IST
-      timezone: "Asia/Kolkata"
-
+    # All times UTC. IST = UTC + 5:30
+    # 09:00 IST = 03:30 UTC
+    - cron: '30 3 * * 1-5'   # 09:00 IST — daily baseline / monthly full email
+    - cron: '15 4 * * 1-5'   # 09:45 IST — accuracy check
+    - cron: '0 5 * * 1-5'    # 10:30 IST — intraday 1
+    - cron: '45 5 * * 1-5'   # 11:15 IST — intraday 2
+    - cron: '30 6 * * 1-5'   # 12:00 IST — intraday 3
+    - cron: '15 7 * * 1-5'   # 12:45 IST — intraday 4
+    - cron: '0 8 * * 1-5'    # 13:30 IST — intraday 5
+    - cron: '45 8 * * 1-5'   # 14:15 IST — intraday 6
+    - cron: '30 9 * * 1-5'   # 15:00 IST — intraday 7 + EOD accuracy
   workflow_dispatch:
     inputs:
-      run_type:
-        description: "Run type: daily / intraday / force / accuracy"
-        required: false
-        default: "force"
-      run_label:
-        description: "Label e.g. 'Live 10:30 IST'"
-        required: false
-        default: "Manual Run"
+      mode:
+        description: 'Run mode'
+        required: true
+        default: 'daily'
+        type: choice
+        options: [daily, force, accuracy, test-email]
+
+permissions:
+  contents: write   # needed for results-cache branch push
 
 jobs:
   analyze:
     runs-on: ubuntu-latest
-    timeout-minutes: 120
-    permissions:
-      contents: write
+    timeout-minutes: 45   # Prophet on 500 stocks can take 30–40 min
 
     steps:
-      - name: Checkout repository
+      # ── 1. Checkout ───────────────────────────────────────────────────────
+      - name: Checkout repo
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # full history needed for results-cache branch ops
 
-      - name: Set up Python
+      # ── 2. Python ─────────────────────────────────────────────────────────
+      - name: Set up Python 3.12
         uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
+          python-version: '3.12'
 
+      # ── 3. Install uv ─────────────────────────────────────────────────────
       - name: Install uv
         run: pip install uv
 
+      # ── 4. Install deps via uv sync (honours uv.lock exactly) ─────────────
       - name: Install dependencies
         run: uv sync
+        # NOTE: do NOT use `uv pip install -e .` — that ignores uv.lock
+        # and can pull incompatible Prophet/cmdstanpy versions silently.
 
-      - name: Cache CmdStan
-        uses: actions/cache@v4
-        with:
-          path: ~/.cmdstan
-          key: cmdstan-${{ runner.os }}-v1
-
-      - name: Install CmdStan
+      # ── 5. Determine which run this is ────────────────────────────────────
+      - name: Determine run mode
+        id: runmode
         run: |
-          uv run python -c "
-          import os, cmdstanpy
-          path = os.path.expanduser('~/.cmdstan')
-          if not os.path.exists(path) or not os.listdir(path):
-              print('Installing CmdStan...')
-              cmdstanpy.install_cmdstan()
-          else:
-              print('CmdStan already cached — skipping install')
-          "
+          HOUR=$(TZ='Asia/Kolkata' date +%H)
+          MIN=$(TZ='Asia/Kolkata' date +%M)
+          HHMM="${HOUR}${MIN}"
+          echo "IST time: ${HOUR}:${MIN}"
 
-      - name: Detect run type and label
-        id: detect
-        run: |
+          # Manual dispatch override
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "run_type=${{ github.event.inputs.run_type }}" >> $GITHUB_OUTPUT
-            echo "run_label=${{ github.event.inputs.run_label }}" >> $GITHUB_OUTPUT
-            echo "is_first_run=false"                            >> $GITHUB_OUTPUT
-          else
-            # Calculate dynamic IST labels directly
-            export TZ="Asia/Kolkata"
-            IST_LABEL=$(date +"%H:%M IST")
-
-            # Check if prediction_log.csv was already updated today in IST
-            TODAY=$(date +"%Y-%m-%d")
-            LAST_COMMIT_DATE=$(git log -1 --format="%ci" -- prediction_log.csv 2>/dev/null | cut -d' ' -f1)
-
-            if [ "$LAST_COMMIT_DATE" != "$TODAY" ]; then
-              echo "run_type=daily"               >> $GITHUB_OUTPUT
-              echo "run_label=Daily ${IST_LABEL}" >> $GITHUB_OUTPUT
-              echo "is_first_run=true"            >> $GITHUB_OUTPUT
-            else
-              echo "run_type=intraday"             >> $GITHUB_OUTPUT
-              echo "run_label=Live ${IST_LABEL}"   >> $GITHUB_OUTPUT
-              echo "is_first_run=false"            >> $GITHUB_OUTPUT
-            fi
+            echo "mode=${{ inputs.mode }}" >> $GITHUB_OUTPUT
+            echo "label=Manual (${{ inputs.mode }})" >> $GITHUB_OUTPUT
+            exit 0
           fi
 
-      - name: Run accuracy check
-        if: ${{ steps.detect.outputs.is_first_run == 'true' }}
-        env:
-          GMAIL_SENDER:      ${{ secrets.GMAIL_SENDER }}
-          GMAIL_PASSWORD:    ${{ secrets.GMAIL_PASSWORD }}
-          GMAIL_RECIPIENT:   ${{ secrets.GMAIL_RECIPIENT }}
-          GITHUB_TOKEN:      ${{ secrets.GITHUB_TOKEN }}
-          GITHUB_REPOSITORY: ${{ github.repository }}
-          GITHUB_WORKSPACE:  ${{ github.workspace }}
-          SCAN_RESULTS_DIR:  /tmp/scan_results
-        run: uv run python main.py --accuracy
-
-      - name: Run stock analyzer
-        env:
-          GMAIL_SENDER:      ${{ secrets.GMAIL_SENDER }}
-          GMAIL_PASSWORD:    ${{ secrets.GMAIL_PASSWORD }}
-          GMAIL_RECIPIENT:   ${{ secrets.GMAIL_RECIPIENT }}
-          GITHUB_TOKEN:      ${{ secrets.GITHUB_TOKEN }}
-          GITHUB_REPOSITORY: ${{ github.repository }}
-          GITHUB_WORKSPACE:  ${{ github.workspace }}
-          SCAN_RESULTS_DIR:  /tmp/scan_results
-        run: |
-          RUN_TYPE="${{ steps.detect.outputs.run_type }}"
-          RUN_LABEL="${{ steps.detect.outputs.run_label }}"
-
-          if [ "$RUN_TYPE" = "force" ]; then
-            uv run python main.py --force
-          elif [ "$RUN_TYPE" = "daily" ]; then
-            uv run python main.py --daily
-          elif [ "$RUN_TYPE" = "accuracy" ]; then
-            uv run python main.py --accuracy
+          # Schedule-based detection by IST time window
+          if [ "$HHMM" -ge "900" ] && [ "$HHMM" -lt "940" ]; then
+            echo "mode=daily"   >> $GITHUB_OUTPUT
+            echo "label=Daily 09:00 IST" >> $GITHUB_OUTPUT
+          elif [ "$HHMM" -ge "940" ] && [ "$HHMM" -lt "1025" ]; then
+            echo "mode=accuracy" >> $GITHUB_OUTPUT
+            echo "label=Accuracy 09:45 IST" >> $GITHUB_OUTPUT
+          elif [ "$HHMM" -ge "1025" ] && [ "$HHMM" -lt "1510" ]; then
+            echo "mode=intraday" >> $GITHUB_OUTPUT
+            echo "label=Live $(TZ='Asia/Kolkata' date +'%H:%M') IST" >> $GITHUB_OUTPUT
           else
-            uv run python main.py --intraday "$RUN_LABEL"
+            echo "mode=intraday" >> $GITHUB_OUTPUT
+            echo "label=EOD $(TZ='Asia/Kolkata' date +'%H:%M') IST" >> $GITHUB_OUTPUT
+          fi
+
+      # ── 6. Run the analyzer ───────────────────────────────────────────────
+      - name: Run Stock Analyzer
+        env:
+          GMAIL_SENDER:    ${{ secrets.GMAIL_SENDER }}
+          GMAIL_PASSWORD:  ${{ secrets.GMAIL_PASSWORD }}
+          GMAIL_RECIPIENT: ${{ secrets.GMAIL_RECIPIENT }}
+          GITHUB_TOKEN:    ${{ secrets.GITHUB_TOKEN }}
+          # FIX: NSE's Cloudflare blocks requests without a browser User-Agent.
+          # nsepython uses requests under the hood — this env var is read by
+          # the patched get_nifty500_tickers() in data.py.
+          NSE_USER_AGENT: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+        run: |
+          MODE="${{ steps.runmode.outputs.mode }}"
+          LABEL="${{ steps.runmode.outputs.label }}"
+          echo "Running in mode: $MODE ($LABEL)"
+
+          if [ "$MODE" = "daily" ]; then
+            uv run python main.py --daily
+
+          elif [ "$MODE" = "accuracy" ]; then
+            uv run python main.py --accuracy
+
+          elif [ "$MODE" = "force" ]; then
+            uv run python main.py --force
+
+          elif [ "$MODE" = "test-email" ]; then
+            uv run python main.py --test-email
+
+          else
+            # intraday
+            uv run python main.py --intraday "$LABEL"
           fi

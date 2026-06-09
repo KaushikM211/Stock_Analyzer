@@ -6,21 +6,27 @@
 # price data. Fundamentals produce a score (0–100) and label
 # (Low / Medium / High risk) shown in the email and used by
 # portfolio.py to build risk-tiered combinations.
+#
+# v3 CHANGE: nsepython removed entirely. Ticker fetching now uses:
+#   1. NSE archives CSV (official, session-cookie approach via requests)
+#   2. Hardcoded fallback list (~500 symbols, current as of mid-2025)
 # ─────────────────────────────────────────────
 
+import io
 import logging
+
 import pandas as pd
+import requests
 import yfinance as yf
 from yfinance import download
-from nsepython import nsefetch
 
 from .config import (
     FETCH_PERIODS,
     MIN_DAYS,
+    RISK_THRESHOLD_HIGH,
+    RISK_THRESHOLD_LOW,
     SECTOR_ETFS,
     TOP_SECTORS_COUNT,
-    RISK_THRESHOLD_LOW,
-    RISK_THRESHOLD_HIGH,
 )
 
 logging.getLogger("yfinance").setLevel(logging.CRITICAL)
@@ -182,44 +188,515 @@ _COMPANY_NAME_MAP = {
 
 
 # ─────────────────────────────────────────────
-# TICKER FETCHING — nsepython primary source
+# TICKER FETCHING
+#
+# Strategy:
+#   1. NSE archives CSV — official list, ~500 symbols, updated by NSE.
+#      Requires a live NSE session cookie (obtained by hitting homepage first).
+#   2. Hardcoded fallback — ~500 representative symbols, current as of mid-2025.
+#      Used when NSE is unreachable (rate limit, network, IP block, etc.)
+#
+# Ticker aliases (mergers/renames) are applied to both sources.
 # ─────────────────────────────────────────────
 
+_NSE_CSV_URL = "https://nsearchives.nseindia.com/content/indices/ind_nifty500list.csv"
+_NSE_HOME_URL = "https://www.nseindia.com"
 
-def get_nifty500_tickers():
+# Nifty 500 symbols as of mid-2025.
+# Update this list annually or whenever index rebalancing happens.
+_NIFTY500_FALLBACK_SYMBOLS = [
+    # ── Nifty 50 core ──────────────────────────────────────────────────────
+    "RELIANCE",
+    "TCS",
+    "HDFCBANK",
+    "ICICIBANK",
+    "INFOSYS",
+    "HINDUNILVR",
+    "ITC",
+    "SBIN",
+    "BHARTIARTL",
+    "KOTAKBANK",
+    "LT",
+    "AXISBANK",
+    "ASIANPAINT",
+    "MARUTI",
+    "TITAN",
+    "SUNPHARMA",
+    "WIPRO",
+    "BAJFINANCE",
+    "HCLTECH",
+    "ULTRACEMCO",
+    "NESTLEIND",
+    "POWERGRID",
+    "TECHM",
+    "NTPC",
+    "TATAMOTORS",
+    "BAJAJFINSV",
+    "ONGC",
+    "JSWSTEEL",
+    "TATASTEEL",
+    "ADANIENT",
+    "ADANIPORTS",
+    "COALINDIA",
+    "BRITANNIA",
+    "DIVISLAB",
+    "DRREDDY",
+    "EICHERMOT",
+    "GRASIM",
+    "HEROMOTOCO",
+    "HINDALCO",
+    "INDUSINDBK",
+    "CIPLA",
+    "BPCL",
+    "APOLLOHOSP",
+    "SBILIFE",
+    "HDFCLIFE",
+    "TATACONSUM",
+    "BAJAJ-AUTO",
+    "M&M",
+    "LTIM",
+    "SHRIRAMFIN",
+    # ── Nifty Next 50 ──────────────────────────────────────────────────────
+    "ADANIENSOL",
+    "ADANIGREEN",
+    "ADANITRANS",
+    "AMBUJACEM",
+    "ATGL",
+    "BANKBARODA",
+    "BERGEPAINT",
+    "BOSCHLTD",
+    "CANBK",
+    "CHOLAFIN",
+    "COLPAL",
+    "DABUR",
+    "DLF",
+    "GAIL",
+    "GODREJCP",
+    "GODREJPROP",
+    "HAVELLS",
+    "ICICIPRULI",
+    "ICICIGI",
+    "INDUSTOWER",
+    "JINDALSTEL",
+    "LODHA",
+    "LUPIN",
+    "MUTHOOTFIN",
+    "NAUKRI",
+    "NMDC",
+    "PAGEIND",
+    "PIDILITIND",
+    "PNB",
+    "RECLTD",
+    "SAIL",
+    "SHREECEM",
+    "SIEMENS",
+    "SRF",
+    "TATAPOWER",
+    "TORNTPHARM",
+    "TRENT",
+    "TVSMOTOR",
+    "UPL",
+    "VEDL",
+    "VOLTAS",
+    "ZOMATO",
+    "ZYDUSLIFE",
+    "PERSISTENT",
+    "MCDOWELL-N",
+    "HINDCOPPER",
+    "PFC",
+    "OBEROIRLTY",
+    "INDIGO",
+    "CGPOWER",
+    # ── Nifty Midcap 150 core ──────────────────────────────────────────────
+    "ABCAPITAL",
+    "ABFRL",
+    "ACC",
+    "AIAENG",
+    "ALKEM",
+    "APLLTD",
+    "APLAPOLLO",
+    "ASTRAL",
+    "ATUL",
+    "AUBANK",
+    "BANDHANBNK",
+    "BATAINDIA",
+    "BEL",
+    "BHARATFORG",
+    "BHEL",
+    "BIKAJI",
+    "BLUEDART",
+    "BSE",
+    "CAMS",
+    "CANFINHOME",
+    "CDSL",
+    "CESC",
+    "CHAMBLFERT",
+    "CLEAN",
+    "COFORGE",
+    "CROMPTON",
+    "CUMMINSIND",
+    "CYIENT",
+    "DEEPAKNTR",
+    "DELHIVERY",
+    "EMAMILTD",
+    "ENDURANCE",
+    "ESCORTS",
+    "EXIDEIND",
+    "FEDERALBNK",
+    "FORTIS",
+    "GMRINFRA",
+    "GNFC",
+    "GODREJIND",
+    "GRANULES",
+    "GRINDWELL",
+    "GSPL",
+    "HAPPSTMNDS",
+    "HFCL",
+    "HONAUT",
+    "IDBI",
+    "IDFCFIRSTB",
+    "IEX",
+    "IIFL",
+    "INDIANB",
+    "INDHOTEL",
+    "IOC",
+    "IRCTC",
+    "ISEC",
+    "JKCEMENT",
+    "JUBLFOOD",
+    "JUBILANT",
+    "KAJARIACER",
+    "KALPATPOWR",
+    "KAYNES",
+    "KEC",
+    "KPITTECH",
+    "KRBL",
+    "LAURUSLABS",
+    "LICHSGFIN",
+    "LINDEINDIA",
+    "M&MFIN",
+    "MARICO",
+    "MAXHEALTH",
+    "METROPOLIS",
+    "MINDACORP",
+    "MPHASIS",
+    "MRF",
+    "MSSL",
+    "NATIONALUM",
+    "NBCC",
+    "NH",
+    "NLCINDIA",
+    "OFSS",
+    "OIL",
+    "PGHH",
+    "PHOENIXLTD",
+    "PIIND",
+    "POLYMED",
+    "PVRINOX",
+    "RADICO",
+    "RAJESHEXPO",
+    "RAMCOCEM",
+    "RVNL",
+    "SBICARD",
+    "SIGNATURE",
+    "SKFINDIA",
+    "SOBHA",
+    "SOLARINDS",
+    "SONACOMS",
+    "STAR",
+    "SUMICHEM",
+    "SUNTV",
+    "SUPREMEIND",
+    "SUZLON",
+    "TANLA",
+    "TATACOMM",
+    "TATACHEM",
+    "TATAELXSI",
+    "THERMAX",
+    "TIMKEN",
+    "TITAGARH",
+    "TORNTPOWER",
+    "TRIDENT",
+    "UCOBANK",
+    "UNIONBANK",
+    "UNOMINDA",
+    "UTIAMF",
+    "VGUARD",
+    "VBL",
+    "WHIRLPOOL",
+    "ZEEL",
+    "ZENTEC",
+    # ── Nifty Smallcap 250 (representative sample) ─────────────────────────
+    "AARTIDRUGS",
+    "AARTIIND",
+    "ACCELYA",
+    "ACMESOLAR",
+    "AEGISLOG",
+    "AFFLE",
+    "AJANTPHARM",
+    "ALEMBICLTD",
+    "AMBER",
+    "ANGELONE",
+    "ANURAS",
+    "APTUS",
+    "ARVINDFASN",
+    "ASAHIINDIA",
+    "ASHOKLEY",
+    "BAJAJELEC",
+    "BALAMINES",
+    "BALRAMCHIN",
+    "BARBEQUE",
+    "BECTORFOOD",
+    "BIRLACORPN",
+    "BOROLTD",
+    "BRIGADE",
+    "CARTRADE",
+    "CEATLTD",
+    "CENTURYPLY",
+    "CENTURYTEX",
+    "CHEMPLASTS",
+    "CIEINDIA",
+    "CONFIPET",
+    "CRAFTSMAN",
+    "CREDITACC",
+    "DATAMATICS",
+    "DCB",
+    "DEEPAKFERT",
+    "DELTACORP",
+    "DHANI",
+    "DHARMAJ",
+    "DIXON",
+    "DMART",
+    "DOMS",
+    "EASEMYTRIP",
+    "ECLERX",
+    "EIDPARRY",
+    "ELECON",
+    "ELGIEQUIP",
+    "EMCURE",
+    "EQUITASBNK",
+    "ESABINDIA",
+    "FINEORG",
+    "FINPIPE",
+    "FLUOROCHEM",
+    "GABRIEL",
+    "GARFIBRES",
+    "GESHIP",
+    "GHCL",
+    "GLOBUSSPR",
+    "GMDCLTD",
+    "GODFRYPHLP",
+    "GPIL",
+    "GPPL",
+    "GRAPHITE",
+    "GRSE",
+    "GSFC",
+    "GUJALKALI",
+    "GULFOILLUB",
+    "HAL",
+    "HAPPYFORGE",
+    "HARDWYN",
+    "HERITGFOOD",
+    "HIKAL",
+    "HINDPETRO",
+    "HMVL",
+    "IBREALEST",
+    "ICRA",
+    "IDFC",
+    "IGI",
+    "INDIAGLYCO",
+    "INDIAMART",
+    "INDIASHLTR",
+    "INDIGOPNTS",
+    "INOXGREEN",
+    "INTELLECT",
+    "IONEXCHANG",
+    "IRB",
+    "IRCON",
+    "ITDCEM",
+    "JBMA",
+    "JINDALSAW",
+    "JKPAPER",
+    "JMFINANCIL",
+    "JPPOWER",
+    "JSWENERGY",
+    "JTEKTINDIA",
+    "JUBLPHARMA",
+    "JUSTDIAL",
+    "KALYANKJIL",
+    "KANSAINER",
+    "KFINTECH",
+    "KIMS",
+    "KNRCON",
+    "KOLTEPATIL",
+    "KRSNAA",
+    "LATENTVIEW",
+    "LAXMIMACH",
+    "LICI",
+    "MAPMYINDIA",
+    "MARKSANS",
+    "MATRIMONY",
+    "MAXESTATES",
+    "MEDICAMEQ",
+    "MEDPLUS",
+    "MFSL",
+    "MIDHANI",
+    "MMTC",
+    "MOTILALOFS",
+    "MSTCLTD",
+    "NAVINFLUOR",
+    "NCC",
+    "NESCO",
+    "NETWORK18",
+    "NUVAMA",
+    "NUVOCO",
+    "OLECTRA",
+    "OPTIEMUS",
+    "PATELENG",
+    "PATANJALI",
+    "PAYTM",
+    "PEL",
+    "PFIZER",
+    "PNBHOUSING",
+    "POONAWALLA",
+    "PRINCEPIPE",
+    "PRSMJOHNSN",
+    "PSB",
+    "QUESS",
+    "RAYMOND",
+    "REDINGTON",
+    "RHIM",
+    "RITES",
+    "ROSSARI",
+    "ROUTE",
+    "RPGLIFE",
+    "SAFARI",
+    "SAPPHIRE",
+    "SBFC",
+    "SENCO",
+    "SHARDACROP",
+    "SHYAMMETL",
+    "SJVN",
+    "SMSPHARMA",
+    "SNOWMAN",
+    "SPANDANA",
+    "SPECIALITY",
+    "SRTRANSFIN",
+    "STLTECH",
+    "SUBROS",
+    "SUNDARMFIN",
+    "SUNDRMFAST",
+    "SUNTECK",
+    "SURYAROSNI",
+    "SUVENPHAR",
+    "SWANENERGY",
+    "SWSOLAR",
+    "SYMPHONY",
+    "SYRMA",
+    "TAJGVK",
+    "TATAINVEST",
+    "TCIEXP",
+    "TEJASNET",
+    "TFCILTD",
+    "THYROCARE",
+    "TIPSINDLTD",
+    "TIRUMALCHM",
+    "TTML",
+    "TVSHLTD",
+    "TVSSCS",
+    "UJJIVANSFB",
+    "UNIPARTS",
+    "UPDATER",
+    "UTIAMC",
+    "VAIBHAVGBL",
+    "VARROC",
+    "VINATIORGA",
+    "VINDHYATEL",
+    "WELCORP",
+    "XPROINDIA",
+    "YATHARTH",
+    "ZAGGLE",
+    "ZENSARTECH",
+]
+
+
+def get_nifty500_tickers() -> list[str]:
     """
-    Fetches the Nifty 500 stock list via NSE API using nsepython.
-    nsepython handles session cookies and headers automatically.
+    Returns Nifty 500 tickers suffixed with '.NS' for yfinance.
+
+    Source priority:
+      1. NSE archives CSV  — official, ~500 symbols, updated by NSE.
+      2. Hardcoded fallback — ~500 representative symbols (mid-2025).
+
+    Ticker aliases (mergers/renames) are applied to both sources.
+    """
+    tickers = _fetch_nse_csv() or _fallback_tickers()
+
+    # Apply known aliases and deduplicate
+    result, seen = [], set()
+    for t in tickers:
+        resolved = TICKER_ALIASES.get(t, t)
+        if resolved not in seen:
+            result.append(resolved)
+            seen.add(resolved)
+
+    print(f"  ✓ Loaded {len(result)} tickers")
+    return result
+
+
+def _fetch_nse_csv() -> list[str] | None:
+    """
+    Fetches the official Nifty 500 CSV from NSE archives.
+
+    NSE requires:
+      - A valid session cookie (obtained by hitting the homepage first)
+      - Browser-like headers (User-Agent, Referer, Accept)
+
+    Returns a list of '.NS'-suffixed tickers, or None on any failure.
     """
     try:
-        url = "https://www.nseindia.com/api/equity-stockIndices?index=NIFTY%20500"
-        payload = nsefetch(url)
+        session = requests.Session()
+        session.headers.update(
+            {
+                "User-Agent": (
+                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                    "AppleWebKit/537.36 (KHTML, like Gecko) "
+                    "Chrome/124.0.0.0 Safari/537.36"
+                ),
+                "Referer": _NSE_HOME_URL,
+                "Accept": "text/html,application/xhtml+xml,*/*;q=0.9",
+                "Accept-Language": "en-US,en;q=0.9",
+            }
+        )
 
-        if "data" not in payload:
-            print("Error: Could not find 'data' key in NSE response.")
-            return []
+        # Hit homepage first to establish session cookies — cold CSV requests return 403
+        session.get(_NSE_HOME_URL, timeout=10)
 
-        yf_tickers = [
-            f"{stock['symbol']}.NS"
-            for stock in payload["data"]
-            if stock["symbol"] != "NIFTY 500"
-        ]
+        resp = session.get(_NSE_CSV_URL, timeout=15)
+        resp.raise_for_status()
 
-        # Apply known ticker aliases
-        result = []
-        seen = set()
-        for t in yf_tickers:
-            resolved = TICKER_ALIASES.get(t, t)
-            if resolved not in seen:
-                result.append(resolved)
-                seen.add(resolved)
+        df = pd.read_csv(io.BytesIO(resp.content))
 
-        print(f"  ✓ Fetched {len(result)} tickers via nsepython")
-        return result
+        # NSE CSV always has a 'Symbol' column
+        if "Symbol" not in df.columns:
+            print(f"  ⚠ NSE CSV: unexpected columns {df.columns.tolist()}")
+            return None
+
+        symbols = df["Symbol"].dropna().str.strip().tolist()
+        tickers = [f"{s}.NS" for s in symbols if s]
+        print(f"  ✓ NSE CSV: fetched {len(tickers)} tickers")
+        return tickers
 
     except Exception as e:
-        print(f"Error fetching Nifty 500 tickers: {e}")
-        return []
+        print(f"  ⚠ NSE CSV fetch failed ({e}), using fallback list")
+        return None
+
+
+def _fallback_tickers() -> list[str]:
+    """Returns the hardcoded Nifty 500 symbol list with '.NS' suffix."""
+    tickers = [f"{s}.NS" for s in _NIFTY500_FALLBACK_SYMBOLS]
+    print(f"  ✓ Fallback list: {len(tickers)} tickers")
+    return tickers
 
 
 # ─────────────────────────────────────────────
@@ -259,9 +736,9 @@ def fetch_fundamentals(ticker: str) -> dict | None:
         debt_to_equity = info.get("debtToEquity")
         revenue_growth = info.get("revenueGrowth")
         sector = info.get("sector", "")
+
         # yfinance returns D/E as percentage × 100 (e.g. 150 = 1.5x D/E)
-        # Normalise by always dividing by 100 — the raw value is never
-        # a meaningful ratio directly (a D/E of 15 means 0.15x, not 15x)
+        # Normalise by always dividing by 100
         if debt_to_equity is not None:
             debt_to_equity = debt_to_equity / 100
 
@@ -279,11 +756,12 @@ def fetch_fundamentals(ticker: str) -> dict | None:
             interest_coverage = ebit / abs(interest_expense)
 
         # ── Additional quality metrics ──
-        roe = info.get("returnOnEquity")  # Net Income / Equity — capital efficiency
-        ev_to_ebitda = info.get("enterpriseToEbitda")  # Valuation vs operating profit
+        roe = info.get("returnOnEquity")  # Net Income / Equity
+        ev_to_ebitda = info.get("enterpriseToEbitda")
         operating_cashflow = info.get("operatingCashflow")
         net_income = info.get("netIncomeToCommon") or info.get("netIncome")
-        # Earnings quality: cash flow / net income — ratio < 0.8 = earnings not backed by cash
+
+        # Earnings quality: cash flow / net income — ratio < 0.8 = not backed by cash
         earnings_quality = None
         if operating_cashflow and net_income and net_income != 0:
             earnings_quality = operating_cashflow / abs(net_income)
@@ -327,7 +805,6 @@ def _get_pe_limit(sector: str, industry: str) -> float:
     industry_lower = industry.lower()
     for ind_key, limit in INDUSTRY_PE_LIMITS.items():
         ind_key_lower = ind_key.lower()
-        # Bidirectional match handles yfinance string variations
         if ind_key_lower in industry_lower or industry_lower in ind_key_lower:
             return limit
     for sector_key, limit in SECTOR_PE_LIMITS.items():
@@ -361,15 +838,19 @@ def score_fundamental_risk(ticker: str) -> tuple[str, float, list[str]]:
     reasons    : human-readable explanation per multiplier
 
     Multiplicative model:
-        raw = PE_m × DE_m × Rev_m × Data_m × ICR_m
+        raw = PE_m × DE_m × Rev_m × Data_m × ICR_m × ROE_m × EV_m × EQ_m × NDebt_m
         Log-normalised to 1–100.
 
     Multipliers:
-        PE_m   — 1.0 within limit, up to 4.0× at 2× limit
-        DE_m   — 1.0 within limit, up to 3.5×; financial sector always 1.0×
-        Rev_m  — 0.85× for ≥15% growth, 1.0× flat, up to 2.2× at −15% decline
-        Data_m — 1.0× complete, 1.2/1.5/1.9× for 1/2/3 missing fields
-        ICR_m  — only when D/E>4×; 1.0× if ICR≥3×, up to 2.5× if ICR<1×
+        PE_m    — 1.0 within limit, up to 4.0× at 2× limit
+        DE_m    — 1.0 within limit, up to 3.5×; financial sector always 1.0×
+        Rev_m   — 0.85× for ≥15% growth, 1.0× flat, up to 2.2× at −15% decline
+        Data_m  — 1.0× complete, 1.2/1.5/1.9× for 1/2/3 missing fields
+        ICR_m   — only when D/E>4×; 1.0× if ICR≥3×, up to 2.5× if ICR<1×
+        ROE_m   — sector-adjusted; poor capital allocation penalised
+        EV_m    — sector-adjusted EV/EBITDA limits
+        EQ_m    — operating cashflow / net income; <0.8 penalised
+        NDebt_m — Net Debt/EBITDA; utility/infra get higher limits
     """
     fundamentals = fetch_fundamentals(ticker)
     reasons = []
@@ -393,7 +874,7 @@ def score_fundamental_risk(ticker: str) -> tuple[str, float, list[str]]:
 
     fields_missing = sum(1 for v in [pe, de, rev_gr] if v is None)
 
-    # ── PE multiplier ──
+    # ── 1. PE multiplier ──
     if pe is None:
         pe_m = 1.0
         reasons.append("PE unavailable — no multiplier")
@@ -410,7 +891,7 @@ def score_fundamental_risk(ticker: str) -> tuple[str, float, list[str]]:
             pe_m = min(1.0 + (x - 1.0) ** 1.5 * 3.0, 4.0)
             reasons.append(f"PE={pe:.1f} vs limit={pe_limit} → {x:.2f}× ({pe_m:.2f}×)")
 
-    # ── D/E multiplier ──
+    # ── 2. D/E multiplier ──
     de_limit = _get_de_limit(sector)
     if de_limit is None:
         de_m = 1.0
@@ -427,7 +908,7 @@ def score_fundamental_risk(ticker: str) -> tuple[str, float, list[str]]:
             de_m = min(1.0 + (x - 1.0) ** 1.4 * 2.5, 3.5)
             reasons.append(f"D/E={de:.2f} vs limit={de_limit} → {x:.2f}× ({de_m:.2f}×)")
 
-    # ── Revenue growth multiplier ──
+    # ── 3. Revenue growth multiplier ──
     if rev_gr is None:
         rev_m = 1.0
         reasons.append("Revenue growth unavailable — no multiplier")
@@ -442,14 +923,14 @@ def score_fundamental_risk(ticker: str) -> tuple[str, float, list[str]]:
             rev_m = 1.0 + severity**1.2 * 1.2
         reasons.append(f"Revenue growth={pct:.1f}% → {rev_m:.2f}×")
 
-    # ── Data completeness multiplier ──
+    # ── 4. Data completeness multiplier ──
     data_m = {0: 1.0, 1: 1.2, 2: 1.5, 3: 1.9}[fields_missing]
     if fields_missing > 0:
         reasons.append(f"{fields_missing} field(s) missing → {data_m}×")
     else:
         reasons.append("All 3 fields present (1.0×)")
 
-    # ── Interest coverage multiplier (only D/E > 4× non-financial) ──
+    # ── 5. Interest coverage multiplier (only D/E > 4× non-financial) ──
     icr_m = 1.0
     if de is not None and de_limit is not None and de > 4.0:
         if icr is None:
@@ -464,16 +945,15 @@ def score_fundamental_risk(ticker: str) -> tuple[str, float, list[str]]:
             reasons.append(f"D/E={de:.2f}>4× ICR={icr:.1f}× low ({icr_m:.2f}×)")
 
     # ── 6. ROE multiplier ──
-    # Low ROE = poor capital allocation = shareholder value being destroyed
-    # Sector-adjusted: utilities/infra accept lower ROE due to regulated returns
-    # Financial sector: ROE above 12% is strong, below 8% is concerning
+    # Low ROE = poor capital allocation.
+    # Sector-adjusted: utilities/infra accept lower ROE (regulated returns).
+    # Financial sector: ROE above 12% is strong, below 8% is concerning.
     roe_m = 1.0
     if roe is not None:
         is_financial = _get_de_limit(sector) is None
         is_utility = "utilit" in sector.lower() or "infrastructure" in sector.lower()
         roe_pct = roe * 100
         if is_financial:
-            # Banks/NBFCs: ROE < 8% is poor, ROE > 15% is strong
             if roe_pct < 8:
                 roe_m = 1.0 + min((8 - roe_pct) / 8, 1.0) ** 1.2 * 1.8
                 reasons.append(
@@ -482,7 +962,6 @@ def score_fundamental_risk(ticker: str) -> tuple[str, float, list[str]]:
             else:
                 reasons.append(f"ROE={roe_pct:.1f}% — acceptable (1.0×)")
         elif is_utility:
-            # Utilities: ROE < 6% is poor (regulated returns are inherently lower)
             if roe_pct < 6:
                 roe_m = 1.0 + min((6 - roe_pct) / 6, 1.0) ** 1.2 * 1.2
                 reasons.append(
@@ -491,14 +970,13 @@ def score_fundamental_risk(ticker: str) -> tuple[str, float, list[str]]:
             else:
                 reasons.append(f"ROE={roe_pct:.1f}% — acceptable for utility (1.0×)")
         else:
-            # All others: ROE < 10% is poor capital allocation
             if roe_pct < 10:
                 roe_m = 1.0 + min((10 - roe_pct) / 10, 1.0) ** 1.2 * 1.8
                 reasons.append(
                     f"ROE={roe_pct:.1f}% — poor capital allocation ({roe_m:.2f}×)"
                 )
             elif roe_pct >= 20:
-                roe_m = 0.90  # strong ROE gives a small reward
+                roe_m = 0.90
                 reasons.append(f"ROE={roe_pct:.1f}% — strong (0.90×)")
             else:
                 reasons.append(f"ROE={roe_pct:.1f}% — adequate (1.0×)")
@@ -506,16 +984,15 @@ def score_fundamental_risk(ticker: str) -> tuple[str, float, list[str]]:
         reasons.append("ROE unavailable — no multiplier")
 
     # ── 7. EV/EBITDA multiplier ──
-    # High EV/EBITDA = expensive relative to operating profit
-    # Sector-adjusted limits — growth sectors command higher multiples
+    # High EV/EBITDA = expensive relative to operating profit.
+    # Sector-adjusted limits — growth sectors command higher multiples.
     ev_m = 1.0
     if ev_to_ebitda is not None and ev_to_ebitda > 0:
         is_financial = _get_de_limit(sector) is None
         if is_financial:
-            ev_m = 1.0  # EV/EBITDA not meaningful for banks
+            ev_m = 1.0
             reasons.append("EV/EBITDA exempt — financial sector (1.0×)")
         else:
-            # Sector-specific EV/EBITDA limits
             ev_lim = (
                 30
                 if "technology" in sector.lower() or "software" in industry.lower()
@@ -525,8 +1002,8 @@ def score_fundamental_risk(ticker: str) -> tuple[str, float, list[str]]:
                 if "consumer" in sector.lower()
                 else 15
                 if "energy" in sector.lower() or "utility" in sector.lower()
-                else 22
-            )  # default
+                else 22  # default
+            )
             if ev_to_ebitda > ev_lim:
                 x = ev_to_ebitda / ev_lim
                 ev_m = min(1.0 + (x - 1.0) ** 1.3 * 1.5, 3.0)
@@ -541,14 +1018,11 @@ def score_fundamental_risk(ticker: str) -> tuple[str, float, list[str]]:
         reasons.append("EV/EBITDA unavailable — no multiplier")
 
     # ── 8. Earnings quality multiplier ──
-    # Operating cash flow / Net income — ratio < 0.8 means earnings not backed by cash
-    # Very common in infrastructure/solar where revenue is booked but cash arrives later
+    # Operating cash flow / Net income — ratio < 0.8 = earnings not backed by cash.
     eq_m = 1.0
     if earnings_quality is not None:
         if earnings_quality < 0:
-            eq_m = (
-                1.8  # negative operating cashflow despite positive earnings = red flag
-            )
+            eq_m = 1.8
             reasons.append(
                 f"Earnings quality={earnings_quality:.2f} — negative operating cashflow (1.8×)"
             )
@@ -568,8 +1042,8 @@ def score_fundamental_risk(ticker: str) -> tuple[str, float, list[str]]:
         reasons.append("Earnings quality unavailable — no multiplier")
 
     # ── 9. Net Debt/EBITDA multiplier ──
-    # More meaningful than D/E for capital-heavy sectors (infra, solar, telecom)
-    # Net Debt = Total Debt - Cash. High ratio = takes many years to repay debt
+    # More meaningful than D/E for capital-heavy sectors (infra, solar, telecom).
+    # Net Debt = Total Debt − Cash. High ratio = many years to repay debt.
     ndeb_m = 1.0
     if net_debt_ebitda is not None:
         is_utility_or_infra = (
@@ -583,7 +1057,7 @@ def score_fundamental_risk(ticker: str) -> tuple[str, float, list[str]]:
                 f"Net Debt/EBITDA={net_debt_ebitda:.1f}x vs limit={nd_lim}x ({ndeb_m:.2f}×)"
             )
         elif net_debt_ebitda < 0:
-            ndeb_m = 0.95  # net cash position — small reward
+            ndeb_m = 0.95
             reasons.append(
                 f"Net Debt/EBITDA={net_debt_ebitda:.1f}x — net cash position (0.95×)"
             )
@@ -634,7 +1108,7 @@ def passes_fundamental_filter(ticker: str) -> tuple[bool, str]:
     Risk scoring is now done via score_fundamental_risk().
     Kept so __init__.py and any old callers don't break.
     """
-    label, score, reasons = score_fundamental_risk(ticker)
+    label, score, _ = score_fundamental_risk(ticker)
     return True, f"{label} risk (score={score})"
 
 

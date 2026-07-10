@@ -1656,3 +1656,5 @@ Scan_Date,Run_Time,Run_Label,Stock,Company_Name,Predicted_Buy_Date,Predicted_Buy
 2026-07-08,11:30,Live 16:50 IST,IFCI.NS,IFCI Limited,09 Jul 2026,73.87,74.8,2026-07-09,1.26,OVER,True,
 2026-07-08,11:30,Live 16:50 IST,AUROPHARMA.NS,Aurobindo Pharma Limited,09 Jul 2026,1558.02,1555.0,2026-07-09,-0.19,UNDER,True,
 2026-07-08,11:30,Live 16:50 IST,SARDAEN.NS,Sarda Energy & Minerals Limited,09 Jul 2026,491.66,493.8,2026-07-09,0.44,OVER,True,
+2026-07-09,12:30,Live 17:49 IST,THELEELA.NS,Leela Palaces Hotels & Resorts Limited,10 Jul 2026,499.47,509.0,2026-07-10,1.91,OVER,True,
+2026-07-09,12:30,Live 17:49 IST,ADANIPOWER.NS,Adani Power Limited,10 Jul 2026,216.53,218.5,2026-07-10,0.91,OVER,True,

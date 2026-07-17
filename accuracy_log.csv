@@ -1684,3 +1684,4 @@ Scan_Date,Run_Time,Run_Label,Stock,Company_Name,Predicted_Buy_Date,Predicted_Buy
 2026-07-15,06:10,Daily 2026-07-15,ASIANPAINT.NS,Asian Paints Limited,16 Jul 2026,2685.07,2688.0,2026-07-16,0.11,OVER,True,
 2026-07-15,07:42,Live 13:02 IST,ANANDRATHI.NS,Anand Rathi Wealth Limited,16 Jul 2026,2082.84,2100.0,2026-07-16,0.82,OVER,True,
 2026-07-15,11:17,Live 16:37 IST,AUROPHARMA.NS,Aurobindo Pharma Limited,16 Jul 2026,1551.39,1550.2,2026-07-16,-0.08,UNDER,True,
+2026-07-14,11:15,Live 16:33 IST,NEULANDLAB.NS,Neuland Laboratories Limited,17 Jul 2026,18985.23,18751.0,2026-07-17,-1.23,UNDER,True,

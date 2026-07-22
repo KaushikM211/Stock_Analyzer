@@ -1688,3 +1688,6 @@ Scan_Date,Run_Time,Run_Label,Stock,Company_Name,Predicted_Buy_Date,Predicted_Buy
 2026-07-17,07:58,Live 13:15 IST,SARDAEN.NS,Sarda Energy & Minerals Limited,20 Jul 2026,493.94,498.25,2026-07-20,0.87,OVER,True,
 2026-07-17,09:34,Live 14:51 IST,ASIANPAINT.NS,Asian Paints Limited,21 Jul 2026,2689.96,2695.0,2026-07-21,0.19,OVER,True,
 2026-07-20,08:37,Live 13:58 IST,GUJALKALI.NS,Gujarat Alkalies and Chemicals Limited,21 Jul 2026,603.99,609.95,2026-07-21,0.99,OVER,True,
+2026-07-14,10:33,Live 15:52 IST,NAVA.NS,Nava Limited,22 Jul 2026,595.57,587.55,2026-07-22,-1.35,UNDER,True,
+2026-07-20,08:37,Live 13:58 IST,HARDWYN.NS,Hardwyn India Limited,22 Jul 2026,15.89,16.0,2026-07-22,0.69,OVER,True,
+2026-07-20,08:37,Live 13:58 IST,YATHARTH.NS,Yatharth Hospital & Trauma Care Services Limited,22 Jul 2026,852.61,859.95,2026-07-22,0.86,OVER,True,

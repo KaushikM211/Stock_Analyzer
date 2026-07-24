@@ -1696,3 +1696,4 @@ Scan_Date,Run_Time,Run_Label,Stock,Company_Name,Predicted_Buy_Date,Predicted_Buy
 2026-07-22,11:35,Live 16:54 IST,POLYCAB.NS,Polycab India Limited,23 Jul 2026,9092.48,9088.0,2026-07-23,-0.05,UNDER,True,
 2026-07-22,11:35,Live 16:54 IST,ZENTEC.NS,Zen Technologies Limited,23 Jul 2026,1816.38,1802.0,2026-07-23,-0.79,UNDER,True,
 2026-07-22,11:35,Live 16:54 IST,LUPIN.NS,Lupin Limited,23 Jul 2026,2408.96,2400.0,2026-07-23,-0.37,UNDER,True,
+2026-07-20,08:37,Live 13:58 IST,SHARDACROP.NS,Sharda Cropchem Limited,24 Jul 2026,889.37,859.05,2026-07-24,-3.41,UNDER,False,

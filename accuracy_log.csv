@@ -1761,3 +1761,5 @@ Scan_Date,Run_Time,Run_Label,Stock,Company_Name,Predicted_Buy_Date,Predicted_Buy
 2026-08-12,10:43,Live 16:02 IST,MAHABANK.NS,Bank of Maharashtra,13 Aug 2026,81.85,81.87,2026-08-13,0.02,OVER,True,
 2026-08-12,10:43,Live 16:02 IST,ZENTEC.NS,Zen Technologies Limited,13 Aug 2026,1828.54,1825.0,2026-08-13,-0.19,UNDER,True,
 2026-08-12,10:43,Live 16:02 IST,NAM-INDIA.NS,Nippon Life India Asset Management Limited,13 Aug 2026,1181.65,1180.3,2026-08-13,-0.11,UNDER,True,
+2026-08-13,10:46,Live 16:04 IST,BANDHANBNK.NS,Bandhan Bank Limited,14 Aug 2026,175.65,175.5,2026-08-14,-0.09,UNDER,True,
+2026-08-13,10:46,Live 16:04 IST,HSCL.NS,Himadri Speciality Chemical Limited,14 Aug 2026,778.02,781.0,2026-08-14,0.38,OVER,True,

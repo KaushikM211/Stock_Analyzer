@@ -1822,3 +1822,6 @@ Scan_Date,Run_Time,Run_Label,Stock,Company_Name,Predicted_Buy_Date,Predicted_Buy
 2026-08-28,21:08,Live 02:27 IST,FEDERALBNK.NS,The Federal Bank Limited,28 Aug 2026,345.07,342.6,2026-08-31,-0.72,UNDER,True,Checked on 2026-08-31 (next trading day after 28 Aug 2026)
 2026-08-28,21:08,Live 02:27 IST,VIJAYA.NS,Vijaya Diagnostic Centre Limited,28 Aug 2026,1474.61,1452.5,2026-08-31,-1.5,UNDER,True,Checked on 2026-08-31 (next trading day after 28 Aug 2026)
 2026-08-28,21:08,Live 02:27 IST,BALRAMCHIN.NS,Balrampur Chini Mills Limited,28 Aug 2026,650.23,649.6,2026-08-28,-0.1,UNDER,True,
+2026-08-20,08:08,Live 13:27 IST,PWL.NS,Physicswallah Limited,01 Sep 2026,120.49,117.0,2026-09-01,-2.9,UNDER,True,
+2026-08-26,05:29,Live 10:50 IST,LUPIN.NS,Lupin Limited,01 Sep 2026,2183.78,2190.2,2026-09-01,0.29,OVER,True,
+2026-08-31,15:21,Live 20:36 IST,PFC.NS,Power Finance Corporation Limited,01 Sep 2026,336.54,343.3,2026-09-01,2.01,OVER,True,

@@ -1829,3 +1829,4 @@ Scan_Date,Run_Time,Run_Label,Stock,Company_Name,Predicted_Buy_Date,Predicted_Buy
 2026-09-01,09:04,Daily 2026-09-01,BALRAMCHIN.NS,Balrampur Chini Mills Limited,02 Sep 2026,662.8,667.2,2026-09-02,0.66,OVER,True,
 2026-09-01,14:27,Live 19:43 IST,POLYMED.NS,Poly Medicure Limited,02 Sep 2026,1755.93,1750.0,2026-09-02,-0.34,UNDER,True,
 2026-09-01,14:27,Live 19:43 IST,ADANIENT.NS,Adani Enterprises Limited,02 Sep 2026,2863.88,2859.8,2026-09-02,-0.14,UNDER,True,
+2026-09-02,13:57,Live 19:15 IST,ATHERENERG.NS,Ather Energy Limited,03 Sep 2026,1688.21,1673.4,2026-09-03,-0.88,UNDER,True,

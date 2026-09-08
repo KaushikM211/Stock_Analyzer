@@ -1836,3 +1836,5 @@ Scan_Date,Run_Time,Run_Label,Stock,Company_Name,Predicted_Buy_Date,Predicted_Buy
 2026-09-04,13:54,Live 19:08 IST,NAM-INDIA.NS,Nippon Life India Asset Management Limited,07 Sep 2026,1160.2,1158.8,2026-09-07,-0.12,UNDER,True,
 2026-09-04,13:54,Live 19:08 IST,PNBHOUSING.NS,PNB Housing Finance Limited,07 Sep 2026,1166.51,1166.0,2026-09-07,-0.04,UNDER,True,
 2026-09-04,13:54,Live 19:08 IST,GRANULES.NS,Granules India Limited,07 Sep 2026,848.49,844.5,2026-09-07,-0.47,UNDER,True,
+2026-08-31,17:19,Live 22:39 IST,SAILIFE.NS,Sai Life Sciences Limited,08 Sep 2026,1458.68,1579.6,2026-09-08,8.29,OVER,False,
+2026-09-04,13:54,Live 19:08 IST,ASTERDM.NS,Aster DM Quality Care Limited,08 Sep 2026,786.6,795.65,2026-09-08,1.15,OVER,True,

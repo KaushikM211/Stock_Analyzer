@@ -1842,3 +1842,5 @@ Scan_Date,Run_Time,Run_Label,Stock,Company_Name,Predicted_Buy_Date,Predicted_Buy
 2026-08-31,17:19,Live 22:39 IST,URBANCO.NS,Urban Company Limited,09 Sep 2026,166.81,170.5,2026-09-09,2.21,OVER,True,
 2026-09-07,15:19,Live 20:37 IST,GRANULES.NS,Granules India Limited,09 Sep 2026,867.76,899.75,2026-09-09,3.69,OVER,False,
 2026-09-08,14:05,Live 19:15 IST,VIJAYA.NS,Vijaya Diagnostic Centre Limited,09 Sep 2026,1503.93,1501.8,2026-09-09,-0.14,UNDER,True,
+2026-09-02,13:57,Live 19:15 IST,MAHABANK.NS,Bank of Maharashtra,10 Sep 2026,82.22,84.56,2026-09-10,2.85,OVER,True,
+2026-09-09,13:59,Live 19:18 IST,PNBHOUSING.NS,PNB Housing Finance Limited,10 Sep 2026,1143.18,1142.5,2026-09-10,-0.06,UNDER,True,

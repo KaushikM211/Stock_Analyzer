@@ -1560,3 +1560,6 @@ Scan_Date,Run_Time,Run_Label,Stock,Company_Name,Predicted_Buy_Date,Predicted_Buy
 2026-09-21,13:20,Live 18:37 IST,NETWEB.NS,Netweb Technologies India Limited,22 Sep 2026,4726.54,4768.0,2026-09-22,0.88,OVER,True,
 2026-09-21,16:07,Live 21:28 IST,MINDACORP.NS,Minda Corporation Limited,22 Sep 2026,680.13,680.3,2026-09-22,0.02,OVER,True,
 2026-09-21,16:07,Live 21:28 IST,LLOYDSME.NS,Lloyds Metals and Energy Limited,22 Sep 2026,1826.85,1830.9,2026-09-22,0.22,OVER,True,
+2026-09-11,13:50,Live 19:11 IST,PGEL.NS,PG Electroplast Limited,23 Sep 2026,545.98,522.85,2026-09-23,-4.24,UNDER,False,
+2026-09-17,14:32,Live 19:51 IST,IKS.NS,Inventurus Knowledge Solutions Limited,23 Sep 2026,1726.8,1881.2,2026-09-23,8.94,OVER,False,
+2026-09-22,12:48,Live 18:07 IST,RRKABEL.NS,R R Kabel Limited,23 Sep 2026,2473.87,2475.0,2026-09-23,0.05,OVER,True,

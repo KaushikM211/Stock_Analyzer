@@ -146,7 +146,6 @@ Scan_Date,Run_Time,Run_Label,Stock,Company_Name,Predicted_Buy_Date,Predicted_Buy
 2026-07-21,10:58,Live 16:17 IST,HINDCOPPER.NS,Hindustan Copper Limited,26 Aug 2026,487.06
 2026-07-23,07:37,Live 12:55 IST,AUBANK.NS,AU SMALL FINANCE BANK LTD,28 Jul 2026,961.11
 2026-07-24,08:07,Live 13:28 IST,TIINDIA.NS,Tube Investments of India Limited,27 Jul 2026,2794.07
-2026-07-24,10:46,Live 16:06 IST,FINCABLES.NS,Finolex Cables Limited,29 Jul 2026,995.87
 2026-07-30,08:07,Live 13:27 IST,POLYCAB.NS,Polycab India Limited,31 Jul 2026,8911.81
 2026-07-30,10:20,Live 15:37 IST,PREMIERENE.NS,PREMIER ENERGIES LIMITED,07 Aug 2026,979.95
 2026-08-04,06:27,Daily 2026-08-04,GALLANTT.NS,Gallantt Ispat Limited,05 Aug 2026,618.93
@@ -213,7 +212,6 @@ Scan_Date,Run_Time,Run_Label,Stock,Company_Name,Predicted_Buy_Date,Predicted_Buy
 2026-10-08,16:52,Live 22:12 IST,RRKABEL.NS,R R Kabel Limited,12 Oct 2026,2696.49
 2026-10-09,14:33,Live 19:52 IST,CRISIL.NS,CRISIL Limited,12 Oct 2026,4435.55
 2026-10-12,13:45,Live 19:02 IST,ANANDRATHI.NS,Anand Rathi Wealth Limited,16 Oct 2026,2087.14
-2026-10-12,16:55,Live 22:14 IST,CONCORDBIO.NS,Concord Biotech Limited,13 Oct 2026,1353.13
 2026-10-12,19:24,Live 00:41 IST,SAMMAANCAP.NS,Sammaan Capital Limited,16 Oct 2026,125.57
 2026-10-12,19:24,Live 00:41 IST,CUPID.NS,Cupid Limited,12 Oct 2026,367.15
 2026-10-12,19:24,Live 00:41 IST,IKS.NS,Inventurus Knowledge Solutions Limited,12 Oct 2026,1715.73
@@ -224,63 +222,65 @@ Scan_Date,Run_Time,Run_Label,Stock,Company_Name,Predicted_Buy_Date,Predicted_Buy
 2026-10-13,17:14,Live 22:32 IST,PPLPHARMA.NS,Piramal Pharma Limited,14 Oct 2026,196.02
 2026-10-14,14:47,Live 20:05 IST,BSE.NS,BSE Limited,15 Oct 2026,3337.47
 2026-10-15,09:41,Live 14:58 IST,CEMPRO.NS,Cemindia Projects Limited,16 Oct 2026,1233.6
-2026-10-15,09:41,Live 14:58 IST,ADANIENT.NS,Adani Enterprises Limited,16 Oct 2026,2686.23
 2026-10-15,10:30,Live 15:49 IST,EMMVEE.NS,Emmvee Photovoltaic Power Limited,17 Dec 2026,276.57
 2026-10-15,14:27,Live 19:46 IST,LENSKART.NS,Lenskart Solutions Limited,30 Oct 2026,642.43
 2026-10-15,14:27,Live 19:46 IST,ACMESOLAR.NS,ACME Solar Holdings Limited,24 Dec 2026,400.11
 2026-10-15,14:27,Live 19:46 IST,WOCKPHARMA.NS,Wockhardt Limited,16 Oct 2026,1951.29
-2026-10-16,08:40,Daily 2026-10-16,RKFORGE.NS,Ramkrishna Forgings Limited,19 Oct 2026,691.58
-2026-10-16,08:40,Daily 2026-10-16,LODHA.NS,Lodha Developers Limited,19 Oct 2026,1058.17
-2026-10-16,08:40,Daily 2026-10-16,CARBORUNIV.NS,Carborundum Universal Limited,19 Oct 2026,1110.57
-2026-10-16,08:40,Daily 2026-10-16,ACE.NS,Action Construction Equipment Limited,26 Oct 2026,1148.37
-2026-10-16,08:40,Daily 2026-10-16,ICICIAMC.NS,ICICI Prudential Asset Management Company Limited,19 Oct 2026,2819.4
-2026-10-16,08:40,Daily 2026-10-16,GROWW.NS,Billionbrains Garage Ventures Limited,19 Oct 2026,200.37
-2026-10-16,08:40,Daily 2026-10-16,RUBICON.NS,Rubicon Research Limited,07 Dec 2026,1500.49
-2026-10-16,08:40,Daily 2026-10-16,ANGELONE.NS,Angel One Limited,19 Oct 2026,303.87
-2026-10-16,08:40,Daily 2026-10-16,MEDANTA.NS,Global Health Limited,19 Oct 2026,1247.24
-2026-10-16,08:40,Daily 2026-10-16,IFCI.NS,IFCI Limited,19 Oct 2026,67.58
-2026-10-16,08:40,Daily 2026-10-16,TMCV.NS,Tata Motors Limited,02 Nov 2026,418.89
-2026-10-16,08:40,Daily 2026-10-16,CAPLIPOINT.NS,Caplin Point Laboratories Limited,19 Oct 2026,2319.58
-2026-10-16,08:40,Daily 2026-10-16,COFORGE.NS,Coforge Limited,19 Oct 2026,1931.98
-2026-10-16,08:40,Daily 2026-10-16,OFSS.NS,Oracle Financial Services Software Limited,22 Oct 2026,10289.84
-2026-10-16,08:40,Daily 2026-10-16,ZENTEC.NS,Zen Technologies Limited,19 Oct 2026,1670.23
-2026-10-16,08:40,Daily 2026-10-16,IPCALAB.NS,Ipca Laboratories Limited,19 Oct 2026,1835.06
-2026-10-16,08:40,Daily 2026-10-16,HONASA.NS,Honasa Consumer Limited,23 Dec 2026,443.13
-2026-10-16,08:40,Daily 2026-10-16,FLUOROCHEM.NS,Gujarat Fluorochemicals Limited,19 Oct 2026,4427.64
-2026-10-16,08:40,Daily 2026-10-16,MAHABANK.NS,Bank of Maharashtra,19 Oct 2026,80.09
-2026-10-16,08:40,Daily 2026-10-16,CANHLIFE.NS,Canara HSBC Life Insurance Company Limited,28 Oct 2026,129.01
-2026-10-16,08:40,Daily 2026-10-16,SONACOMS.NS,Sona BLW Precision Forgings Limited,19 Oct 2026,802.44
-2026-10-16,08:40,Daily 2026-10-16,JYOTICNC.NS,Jyoti CNC Automation Limited,06 Nov 2026,989.98
-2026-10-16,08:40,Daily 2026-10-16,DATAPATTNS.NS,Data Patterns (India) Limited,19 Oct 2026,4077.92
 2026-10-16,08:40,Daily 2026-10-16,ANANTRAJ.NS,Anant Raj Limited,19 Oct 2026,516.05
-2026-10-16,08:40,Daily 2026-10-16,ADANIENSOL.NS,Adani Energy Solutions Limited,19 Oct 2026,1369.29
-2026-10-16,08:40,Daily 2026-10-16,J&KBANK.NS,Jammu and Kashmir Bank Limited,29 Oct 2026,135.26
-2026-10-16,08:40,Daily 2026-10-16,CGCL.NS,Capri Global Capital Limited,27 Oct 2026,241.21
-2026-10-16,08:40,Daily 2026-10-16,OBEROIRLTY.NS,Oberoi Realty Limited,19 Oct 2026,1712.81
-2026-10-16,08:40,Daily 2026-10-16,SCHNEIDER.NS,Schneider Electric Infrastructure Limited,15 Dec 2026,1159.74
-2026-10-16,08:40,Daily 2026-10-16,ADANIPOWER.NS,Adani Power Limited,04 Dec 2026,196.23
-2026-10-16,08:40,Daily 2026-10-16,SAILIFE.NS,Sai Life Sciences Limited,19 Oct 2026,1390.19
-2026-10-16,08:40,Daily 2026-10-16,INOXINDIA.NS,INOX India Limited,19 Oct 2026,2009.63
-2026-10-16,08:40,Daily 2026-10-16,HSCL.NS,Himadri Speciality Chemical Limited,16 Nov 2026,655.43
-2026-10-16,08:40,Daily 2026-10-16,VIJAYA.NS,Vijaya Diagnostic Centre Limited,19 Oct 2026,1389.37
-2026-10-16,08:40,Daily 2026-10-16,MEESHO.NS,Meesho Limited,17 Nov 2026,223.12
-2026-10-16,08:40,Daily 2026-10-16,BHEL.NS,Bharat Heavy Electricals Limited,19 Oct 2026,436.42
-2026-10-16,08:40,Daily 2026-10-16,GLAND.NS,Gland Pharma Limited,04 Nov 2026,3022.55
-2026-10-16,08:40,Daily 2026-10-16,WELSPUNLIV.NS,Welspun Living Limited,06 Nov 2026,219.46
-2026-10-16,08:40,Daily 2026-10-16,NAVINFLUOR.NS,Navin Fluorine International Limited,19 Oct 2026,8108.87
-2026-10-16,08:40,Daily 2026-10-16,CPPLUS.NS,Aditya Infotech Limited,21 Oct 2026,4044.63
-2026-10-16,08:40,Daily 2026-10-16,GRANULES.NS,Granules India Limited,19 Oct 2026,829.93
-2026-10-16,08:40,Daily 2026-10-16,AJANTPHARM.NS,Ajanta Pharma Limited,19 Oct 2026,3352.79
-2026-10-16,08:40,Daily 2026-10-16,NUVAMA.NS,Nuvama Wealth Management Limited,19 Oct 2026,1724.13
-2026-10-16,08:40,Daily 2026-10-16,DIVISLAB.NS,Divi's Laboratories Limited,19 Oct 2026,9159.06
-2026-10-16,08:40,Daily 2026-10-16,AUROPHARMA.NS,Aurobindo Pharma Limited,19 Oct 2026,1665.85
-2026-10-16,08:40,Daily 2026-10-16,JINDALSAW.NS,Jindal Saw Limited,23 Dec 2026,302.22
-2026-10-16,08:40,Daily 2026-10-16,CARTRADE.NS,CarTrade Tech Limited,19 Oct 2026,3026.24
-2026-10-16,08:40,Daily 2026-10-16,LLOYDSME.NS,Lloyds Metals and Energy Limited,19 Oct 2026,1862.69
 2026-10-16,08:40,Daily 2026-10-16,ATHERENERG.NS,Ather Energy Limited,16 Dec 2026,1458.52
 2026-10-16,08:40,Daily 2026-10-16,AETHER.NS,Aether Industries Limited,20 Oct 2026,1551.48
-2026-10-16,08:40,Daily 2026-10-16,TITAN.NS,Titan Company Limited,20 Oct 2026,4465.12
-2026-10-16,08:40,Daily 2026-10-16,NETWEB.NS,Netweb Technologies India Limited,27 Oct 2026,4742.55
-2026-10-16,08:40,Daily 2026-10-16,BBOX.NS,Black Box Limited,27 Oct 2026,906.02
-2026-10-16,08:40,Daily 2026-10-16,AEGISLOG.NS,Aegis Logistics Limited,28 Oct 2026,1376.73
-2026-10-16,08:40,Daily 2026-10-16,REDINGTON.NS,Redington Limited,19 Oct 2026,385.99
+2026-10-16,09:33,Live 14:51 IST,CARBORUNIV.NS,Carborundum Universal Limited,19 Oct 2026,1107.81
+2026-10-16,09:33,Live 14:51 IST,LODHA.NS,Lodha Developers Limited,19 Oct 2026,1053.64
+2026-10-16,09:33,Live 14:51 IST,RKFORGE.NS,Ramkrishna Forgings Limited,19 Oct 2026,691.96
+2026-10-16,09:33,Live 14:51 IST,CONCORDBIO.NS,Concord Biotech Limited,29 Oct 2026,1334.62
+2026-10-16,09:33,Live 14:51 IST,ACE.NS,Action Construction Equipment Limited,26 Oct 2026,1141.68
+2026-10-16,09:33,Live 14:51 IST,ICICIAMC.NS,ICICI Prudential Asset Management Company Limited,19 Oct 2026,2801.94
+2026-10-16,09:33,Live 14:51 IST,GROWW.NS,Billionbrains Garage Ventures Limited,19 Oct 2026,200.52
+2026-10-16,09:33,Live 14:51 IST,RUBICON.NS,Rubicon Research Limited,07 Dec 2026,1483.7
+2026-10-16,09:33,Live 14:51 IST,ANGELONE.NS,Angel One Limited,19 Oct 2026,302.32
+2026-10-16,09:33,Live 14:51 IST,MEDANTA.NS,Global Health Limited,19 Oct 2026,1252.62
+2026-10-16,09:33,Live 14:51 IST,IFCI.NS,IFCI Limited,19 Oct 2026,67.32
+2026-10-16,09:33,Live 14:51 IST,TMCV.NS,Tata Motors Limited,02 Nov 2026,419.43
+2026-10-16,09:33,Live 14:51 IST,CAPLIPOINT.NS,Caplin Point Laboratories Limited,19 Oct 2026,2318.3
+2026-10-16,09:33,Live 14:51 IST,OFSS.NS,Oracle Financial Services Software Limited,21 Oct 2026,10320.26
+2026-10-16,09:33,Live 14:51 IST,ZENTEC.NS,Zen Technologies Limited,19 Oct 2026,1666.18
+2026-10-16,09:33,Live 14:51 IST,COFORGE.NS,Coforge Limited,19 Oct 2026,1943.26
+2026-10-16,09:33,Live 14:51 IST,IPCALAB.NS,Ipca Laboratories Limited,19 Oct 2026,1816.75
+2026-10-16,09:33,Live 14:51 IST,HONASA.NS,Honasa Consumer Limited,23 Dec 2026,442.5
+2026-10-16,09:33,Live 14:51 IST,FLUOROCHEM.NS,Gujarat Fluorochemicals Limited,19 Oct 2026,4417.14
+2026-10-16,09:33,Live 14:51 IST,MAHABANK.NS,Bank of Maharashtra,19 Oct 2026,79.77
+2026-10-16,09:33,Live 14:51 IST,JYOTICNC.NS,Jyoti CNC Automation Limited,06 Nov 2026,989.74
+2026-10-16,09:33,Live 14:51 IST,SONACOMS.NS,Sona BLW Precision Forgings Limited,19 Oct 2026,796.72
+2026-10-16,09:33,Live 14:51 IST,DATAPATTNS.NS,Data Patterns (India) Limited,19 Oct 2026,4082.18
+2026-10-16,09:33,Live 14:51 IST,JINDALSAW.NS,Jindal Saw Limited,23 Dec 2026,297.53
+2026-10-16,09:33,Live 14:51 IST,CANHLIFE.NS,Canara HSBC Life Insurance Company Limited,27 Oct 2026,129.3
+2026-10-16,09:33,Live 14:51 IST,J&KBANK.NS,Jammu and Kashmir Bank Limited,29 Oct 2026,134.63
+2026-10-16,09:33,Live 14:51 IST,ADANIENSOL.NS,Adani Energy Solutions Limited,19 Oct 2026,1366.7
+2026-10-16,09:33,Live 14:51 IST,OBEROIRLTY.NS,Oberoi Realty Limited,19 Oct 2026,1709.41
+2026-10-16,09:33,Live 14:51 IST,ADANIPOWER.NS,Adani Power Limited,23 Nov 2026,196.01
+2026-10-16,09:33,Live 14:51 IST,CGCL.NS,Capri Global Capital Limited,27 Oct 2026,242.92
+2026-10-16,09:33,Live 14:51 IST,SCHNEIDER.NS,Schneider Electric Infrastructure Limited,15 Dec 2026,1160.57
+2026-10-16,09:33,Live 14:51 IST,INOXINDIA.NS,INOX India Limited,19 Oct 2026,1990.4
+2026-10-16,09:33,Live 14:51 IST,SAILIFE.NS,Sai Life Sciences Limited,19 Oct 2026,1389.5
+2026-10-16,09:33,Live 14:51 IST,NUVAMA.NS,Nuvama Wealth Management Limited,19 Oct 2026,1723.81
+2026-10-16,09:33,Live 14:51 IST,HSCL.NS,Himadri Speciality Chemical Limited,16 Nov 2026,654.53
+2026-10-16,09:33,Live 14:51 IST,VIJAYA.NS,Vijaya Diagnostic Centre Limited,19 Oct 2026,1383.31
+2026-10-16,09:33,Live 14:51 IST,FINCABLES.NS,Finolex Cables Limited,01 Dec 2026,1343.06
+2026-10-16,09:33,Live 14:51 IST,CPPLUS.NS,Aditya Infotech Limited,20 Oct 2026,4034.11
+2026-10-16,09:33,Live 14:51 IST,BHEL.NS,Bharat Heavy Electricals Limited,19 Oct 2026,434.53
+2026-10-16,09:33,Live 14:51 IST,AUROPHARMA.NS,Aurobindo Pharma Limited,19 Oct 2026,1662.22
+2026-10-16,09:33,Live 14:51 IST,GLAND.NS,Gland Pharma Limited,03 Nov 2026,3017.51
+2026-10-16,09:33,Live 14:51 IST,WELSPUNLIV.NS,Welspun Living Limited,03 Nov 2026,218.54
+2026-10-16,09:33,Live 14:51 IST,MEESHO.NS,Meesho Limited,17 Nov 2026,225.68
+2026-10-16,09:33,Live 14:51 IST,GRANULES.NS,Granules India Limited,19 Oct 2026,832.57
+2026-10-16,09:33,Live 14:51 IST,NAVINFLUOR.NS,Navin Fluorine International Limited,19 Oct 2026,8173.91
+2026-10-16,09:33,Live 14:51 IST,TITAN.NS,Titan Company Limited,20 Oct 2026,4453.65
+2026-10-16,09:33,Live 14:51 IST,DIVISLAB.NS,Divi's Laboratories Limited,19 Oct 2026,9139.17
+2026-10-16,09:33,Live 14:51 IST,CARTRADE.NS,CarTrade Tech Limited,19 Oct 2026,3011.19
+2026-10-16,09:33,Live 14:51 IST,AJANTPHARM.NS,Ajanta Pharma Limited,19 Oct 2026,3361.52
+2026-10-16,09:33,Live 14:51 IST,LLOYDSME.NS,Lloyds Metals and Energy Limited,19 Oct 2026,1851.16
+2026-10-16,09:33,Live 14:51 IST,BBOX.NS,Black Box Limited,27 Oct 2026,907.98
+2026-10-16,09:33,Live 14:51 IST,REDINGTON.NS,Redington Limited,19 Oct 2026,383.84
+2026-10-16,09:33,Live 14:51 IST,NETWEB.NS,Netweb Technologies India Limited,27 Oct 2026,4728.32
+2026-10-16,09:33,Live 14:51 IST,ADANIENT.NS,Adani Enterprises Limited,19 Oct 2026,2688.0
+2026-10-16,09:33,Live 14:51 IST,AEGISLOG.NS,Aegis Logistics Limited,28 Oct 2026,1372.57

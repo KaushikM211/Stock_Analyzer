@@ -1,52 +1,4 @@
 Scan_Date,Run_Time,Run_Label,Stock,Company_Name,Predicted_Buy_Date,Predicted_Buy_Price,Actual_Open,Actual_Price_Date,Error_Pct,Direction,Within_Threshold,Note
-2026-04-30,07:32,Live 12:52 IST,OIL.NS,Oil India Limited,01 May 2026,487.25,487.0,2026-05-04,-0.05,UNDER,True,Checked on 2026-05-04 (next trading day after 01 May 2026)
-2026-04-30,08:05,Live 13:23 IST,VMM.NS,VISHAL MEGA MART LIMITED,01 May 2026,120.2,123.49,2026-05-04,2.74,OVER,True,Checked on 2026-05-04 (next trading day after 01 May 2026)
-2026-04-30,09:18,Live 14:39 IST,TEGA.NS,Tega Industries Limited,04 May 2026,1669.46,1684.0,2026-05-04,0.87,OVER,True,
-2026-04-30,10:53,Live 16:14 IST,CANBK.NS,Canara Bank,01 May 2026,134.75,135.34,2026-05-04,0.44,OVER,True,Checked on 2026-05-04 (next trading day after 01 May 2026)
-2026-04-30,11:21,Live 16:42 IST,VEDL.NS,Vedanta Limited,01 May 2026,297.29,277.0,2026-05-04,-6.82,UNDER,False,Checked on 2026-05-04 (next trading day after 01 May 2026)
-2026-04-30,11:21,Live 16:42 IST,FINCABLES.NS,Finolex Cables Limited,01 May 2026,989.89,991.0,2026-05-04,0.11,OVER,True,Checked on 2026-05-04 (next trading day after 01 May 2026)
-2026-04-30,11:21,Live 16:42 IST,ASTRAL.NS,Astral Limited,01 May 2026,1527.49,1534.3,2026-05-04,0.45,OVER,True,Checked on 2026-05-04 (next trading day after 01 May 2026)
-2026-04-30,11:21,Live 16:42 IST,IGIL.NS,International Gemological Institute Limited,01 May 2026,345.61,349.95,2026-05-04,1.26,OVER,True,Checked on 2026-05-04 (next trading day after 01 May 2026)
-2026-04-30,11:21,Live 16:42 IST,SUNTV.NS,Sun TV Network Limited,01 May 2026,604.38,610.0,2026-05-04,0.93,OVER,True,Checked on 2026-05-04 (next trading day after 01 May 2026)
-2026-04-30,11:21,Live 16:42 IST,URBANCO.NS,Urban Company Limited,01 May 2026,151.61,151.66,2026-05-04,0.03,OVER,True,Checked on 2026-05-04 (next trading day after 01 May 2026)
-2026-04-30,11:21,Live 16:42 IST,LENSKART.NS,LENSKART SOLUTIONS LTD,01 May 2026,516.88,515.95,2026-05-04,-0.18,UNDER,True,Checked on 2026-05-04 (next trading day after 01 May 2026)
-2026-04-30,11:21,Live 16:42 IST,ICICIAMC.NS,ICICI PRUDENTIAL AMC LTD,01 May 2026,3275.24,3297.0,2026-05-04,0.66,OVER,True,Checked on 2026-05-04 (next trading day after 01 May 2026)
-2026-04-30,11:21,Live 16:42 IST,EMMVEE.NS,EMMVEE PHOTOVOLTAIC PWR L,04 May 2026,260.33,268.75,2026-05-04,3.23,OVER,False,
-2026-04-30,11:21,Live 16:42 IST,GPIL.NS,Godawari Power & Ispat Limited,01 May 2026,296.61,300.0,2026-05-04,1.14,OVER,True,Checked on 2026-05-04 (next trading day after 01 May 2026)
-2026-04-30,11:21,Live 16:42 IST,HONASA.NS,Honasa Consumer Limited,04 May 2026,339.5,336.95,2026-05-04,-0.75,UNDER,True,
-2026-04-30,11:21,Live 16:42 IST,ONESOURCE.NS,ONESOURCE SPECL PHARMA L,04 May 2026,1732.35,1774.0,2026-05-04,2.4,OVER,True,
-2026-04-30,11:21,Live 16:42 IST,HBLENGINE.NS,HBL ENGINEERING LTD,01 May 2026,797.47,805.75,2026-05-04,1.04,OVER,True,Checked on 2026-05-04 (next trading day after 01 May 2026)
-2026-04-30,11:21,Live 16:42 IST,TIMKEN.NS,Timken India Limited,01 May 2026,3431.58,3410.0,2026-05-04,-0.63,UNDER,True,Checked on 2026-05-04 (next trading day after 01 May 2026)
-2026-04-30,11:21,Live 16:42 IST,ZFCVINDIA.NS,ZF Commercial Vehicle Control Systems India Limited,01 May 2026,14702.07,14845.0,2026-05-04,0.97,OVER,True,Checked on 2026-05-04 (next trading day after 01 May 2026)
-2026-04-30,11:21,Live 16:42 IST,MRPL.NS,Mangalore Refinery and Petrochemicals Limited,01 May 2026,167.81,169.0,2026-05-04,0.71,OVER,True,Checked on 2026-05-04 (next trading day after 01 May 2026)
-2026-04-30,11:21,Live 16:42 IST,RRKABEL.NS,R R Kabel Limited,01 May 2026,1572.24,1610.0,2026-05-04,2.4,OVER,True,Checked on 2026-05-04 (next trading day after 01 May 2026)
-2026-04-30,11:21,Live 16:42 IST,APLAPOLLO.NS,APL Apollo Tubes Limited,01 May 2026,1905.85,1910.1,2026-05-04,0.22,OVER,True,Checked on 2026-05-04 (next trading day after 01 May 2026)
-2026-04-30,11:21,Live 16:42 IST,JKTYRE.NS,JK Tyre & Industries Limited,01 May 2026,405.79,410.0,2026-05-04,1.04,OVER,True,Checked on 2026-05-04 (next trading day after 01 May 2026)
-2026-04-30,11:21,Live 16:42 IST,HEROMOTOCO.NS,Hero MotoCorp Limited,01 May 2026,5104.81,5186.0,2026-05-04,1.59,OVER,True,Checked on 2026-05-04 (next trading day after 01 May 2026)
-2026-04-30,11:21,Live 16:42 IST,AUROPHARMA.NS,Aurobindo Pharma Limited,01 May 2026,1391.41,1398.0,2026-05-04,0.47,OVER,True,Checked on 2026-05-04 (next trading day after 01 May 2026)
-2026-04-30,11:21,Live 16:42 IST,ACMESOLAR.NS,ACME SOLAR HOLDINGS LTD,01 May 2026,302.27,303.3,2026-05-04,0.34,OVER,True,Checked on 2026-05-04 (next trading day after 01 May 2026)
-2026-04-30,11:21,Live 16:42 IST,PAYTM.NS,One97 Communications Limited,01 May 2026,1095.23,1097.8,2026-05-04,0.23,OVER,True,Checked on 2026-05-04 (next trading day after 01 May 2026)
-2026-04-30,11:21,Live 16:42 IST,POLYCAB.NS,Polycab India Limited,01 May 2026,8098.81,8110.5,2026-05-04,0.14,OVER,True,Checked on 2026-05-04 (next trading day after 01 May 2026)
-2026-04-30,11:21,Live 16:42 IST,KEI.NS,KEI Industries Limited,01 May 2026,4853.95,4900.9,2026-05-04,0.97,OVER,True,Checked on 2026-05-04 (next trading day after 01 May 2026)
-2026-04-30,11:21,Live 16:42 IST,PTCIL.NS,PTC Industries Limited,01 May 2026,16047.4,16068.0,2026-05-04,0.13,OVER,True,Checked on 2026-05-04 (next trading day after 01 May 2026)
-2026-04-30,11:21,Live 16:42 IST,AUBANK.NS,AU Small Finance Bank Limited,01 May 2026,1016.56,1023.7,2026-05-04,0.7,OVER,True,Checked on 2026-05-04 (next trading day after 01 May 2026)
-2026-04-30,11:21,Live 16:42 IST,EMCURE.NS,EMCURE PHARMACEUTICALS L,01 May 2026,1679.63,1710.0,2026-05-04,1.81,OVER,True,Checked on 2026-05-04 (next trading day after 01 May 2026)
-2026-04-30,11:21,Live 16:42 IST,AJANTPHARM.NS,Ajanta Pharma Limited,01 May 2026,2824.89,2868.4,2026-05-04,1.54,OVER,True,Checked on 2026-05-04 (next trading day after 01 May 2026)
-2026-04-30,11:21,Live 16:42 IST,RBLBANK.NS,RBL Bank Limited,01 May 2026,336.49,339.0,2026-05-04,0.75,OVER,True,Checked on 2026-05-04 (next trading day after 01 May 2026)
-2026-04-30,11:21,Live 16:42 IST,ASAHIINDIA.NS,Asahi India Glass Limited,01 May 2026,838.33,844.55,2026-05-04,0.74,OVER,True,Checked on 2026-05-04 (next trading day after 01 May 2026)
-2026-04-30,11:21,Live 16:42 IST,MOTHERSON.NS,Samvardhana Motherson International Limited,01 May 2026,121.25,121.99,2026-05-04,0.61,OVER,True,Checked on 2026-05-04 (next trading day after 01 May 2026)
-2026-04-30,11:21,Live 16:42 IST,ATUL.NS,Atul Ltd,01 May 2026,6824.57,6890.0,2026-05-04,0.96,OVER,True,Checked on 2026-05-04 (next trading day after 01 May 2026)
-2026-04-30,11:21,Live 16:42 IST,CRAFTSMAN.NS,Craftsman Automation Limited,01 May 2026,7693.98,7795.0,2026-05-04,1.31,OVER,True,Checked on 2026-05-04 (next trading day after 01 May 2026)
-2026-04-30,11:21,Live 16:42 IST,BANKINDIA.NS,Bank of India Limited,01 May 2026,139.93,140.01,2026-05-04,0.06,OVER,True,Checked on 2026-05-04 (next trading day after 01 May 2026)
-2026-04-30,11:21,Live 16:42 IST,SCHAEFFLER.NS,Schaeffler India Limited,01 May 2026,4127.69,4192.2,2026-05-04,1.56,OVER,True,Checked on 2026-05-04 (next trading day after 01 May 2026)
-2026-04-30,11:21,Live 16:42 IST,FEDERALBNK.NS,The Federal Bank Limited,01 May 2026,287.03,290.0,2026-05-04,1.03,OVER,True,Checked on 2026-05-04 (next trading day after 01 May 2026)
-2026-04-30,11:21,Live 16:42 IST,BEL.NS,Bharat Electronics Limited,01 May 2026,431.21,433.0,2026-05-04,0.42,OVER,True,Checked on 2026-05-04 (next trading day after 01 May 2026)
-2026-04-30,11:21,Live 16:42 IST,KARURVYSYA.NS,The Karur Vysya Bank Limited,04 May 2026,293.82,293.6,2026-05-04,-0.07,UNDER,True,
-2026-04-30,11:21,Live 16:42 IST,SBIN.NS,State Bank of India,01 May 2026,1068.28,1063.6,2026-05-04,-0.44,UNDER,True,Checked on 2026-05-04 (next trading day after 01 May 2026)
-2026-04-30,11:21,Live 16:42 IST,JINDALSTEL.NS,Jindal Steel Limited,01 May 2026,1224.51,1245.0,2026-05-04,1.67,OVER,True,Checked on 2026-05-04 (next trading day after 01 May 2026)
-2026-04-30,11:21,Live 16:42 IST,GRSE.NS,Garden Reach Shipbuilders & Engineers Limited,01 May 2026,2931.66,2956.0,2026-05-04,0.83,OVER,True,Checked on 2026-05-04 (next trading day after 01 May 2026)
-2026-04-30,11:21,Live 16:42 IST,BHARATFORG.NS,Bharat Forge Limited,01 May 2026,1880.12,1912.3,2026-05-04,1.71,OVER,True,Checked on 2026-05-04 (next trading day after 01 May 2026)
-2026-04-30,11:21,Live 16:42 IST,HINDCOPPER.NS,Hindustan Copper Limited,01 May 2026,535.72,540.0,2026-05-04,0.8,OVER,True,Checked on 2026-05-04 (next trading day after 01 May 2026)
 2026-05-04,09:24,Live 14:43 IST,ABB.NS,ABB India Limited,05 May 2026,7223.72,7248.0,2026-05-05,0.34,OVER,True,
 2026-05-04,11:03,Live 16:22 IST,ASAHIINDIA.NS,Asahi India Glass Limited,05 May 2026,843.6,849.95,2026-05-05,0.75,OVER,True,
 2026-05-04,11:30,Live 16:50 IST,CEMPRO.NS,Cemindia Projects Limited,05 May 2026,967.11,930.65,2026-05-05,-3.77,UNDER,False,
@@ -105,7 +57,6 @@ Scan_Date,Run_Time,Run_Label,Stock,Company_Name,Predicted_Buy_Date,Predicted_Buy
 2026-05-05,11:09,Live 16:29 IST,BHARATFORG.NS,Bharat Forge Limited,06 May 2026,1867.48,1885.0,2026-05-06,0.94,OVER,True,
 2026-05-05,11:09,Live 16:29 IST,BEL.NS,Bharat Electronics Limited,06 May 2026,433.93,437.0,2026-05-06,0.71,OVER,True,
 2026-05-05,11:09,Live 16:29 IST,BANKINDIA.NS,Bank of India Limited,06 May 2026,138.78,140.5,2026-05-06,1.24,OVER,True,
-2026-04-30,09:18,Live 14:39 IST,INDUSTOWER.NS,Indus Towers Limited,07 May 2026,410.76,410.45,2026-05-07,-0.08,UNDER,True,
 2026-05-05,06:42,Live 12:00 IST,TATASTEEL.NS,Tata Steel Limited,07 May 2026,209.74,216.7,2026-05-07,3.32,OVER,False,
 2026-05-05,07:42,Live 13:03 IST,IFCI.NS,IFCI Limited,07 May 2026,58.51,61.65,2026-05-07,5.37,OVER,False,
 2026-05-06,06:56,Live 12:16 IST,BANKINDIA.NS,Bank of India Limited,07 May 2026,140.04,143.25,2026-05-07,2.29,OVER,True,
@@ -189,7 +140,6 @@ Scan_Date,Run_Time,Run_Label,Stock,Company_Name,Predicted_Buy_Date,Predicted_Buy
 2026-05-08,11:05,Live 16:22 IST,CCL.NS,CCL Products (India) Limited,11 May 2026,1124.52,1113.1,2026-05-11,-1.02,UNDER,True,
 2026-05-08,11:05,Live 16:22 IST,KARURVYSYA.NS,The Karur Vysya Bank Limited,11 May 2026,304.82,304.05,2026-05-11,-0.25,UNDER,True,
 2026-05-08,11:05,Live 16:22 IST,SCHAEFFLER.NS,Schaeffler India Limited,11 May 2026,4250.23,4249.0,2026-05-11,-0.03,UNDER,True,
-2026-04-30,11:21,Live 16:42 IST,WAAREEENER.NS,WAAREE ENERGIES LIMITED,12 May 2026,3096.3,3212.0,2026-05-12,3.74,OVER,False,
 2026-05-05,11:09,Live 16:29 IST,ATHERENERG.NS,Ather Energy Limited,12 May 2026,936.13,974.0,2026-05-12,4.05,OVER,False,
 2026-05-06,07:38,Live 12:59 IST,AIIL.NS,Authum Investment & Infrastructure Limited,12 May 2026,465.61,500.0,2026-05-12,7.39,OVER,False,
 2026-05-08,10:24,Live 15:44 IST,APLAPOLLO.NS,APL Apollo Tubes Limited,12 May 2026,1950.32,1953.0,2026-05-12,0.14,OVER,True,
@@ -353,7 +303,6 @@ Scan_Date,Run_Time,Run_Label,Stock,Company_Name,Predicted_Buy_Date,Predicted_Buy
 2026-05-18,13:04,Live 18:20 IST,ENGINERSIN.NS,Engineers India Limited,19 May 2026,237.86,238.9,2026-05-19,0.44,OVER,True,
 2026-05-18,13:04,Live 18:20 IST,CHENNPETRO.NS,Chennai Petroleum Corporation Limited,19 May 2026,988.69,992.0,2026-05-19,0.33,OVER,True,
 2026-05-18,13:04,Live 18:20 IST,APLAPOLLO.NS,APL Apollo Tubes Limited,19 May 2026,1877.05,1882.0,2026-05-19,0.26,OVER,True,
-2026-04-30,11:21,Live 16:42 IST,MOTILALOFS.NS,Motilal Oswal Financial Services Limited,20 May 2026,794.82,843.0,2026-05-20,6.06,OVER,False,
 2026-05-05,10:38,Live 15:57 IST,ABCAPITAL.NS,Aditya Birla Capital Limited,20 May 2026,359.3,353.0,2026-05-20,-1.75,UNDER,True,
 2026-05-18,08:26,Live 13:45 IST,BALRAMCHIN.NS,Balrampur Chini Mills Limited,20 May 2026,538.7,550.0,2026-05-20,2.1,OVER,True,
 2026-05-18,13:04,Live 18:20 IST,ABSLAMC.NS,ADIT BIRL SUN LIF AMC LTD,20 May 2026,988.51,1036.0,2026-05-20,4.8,OVER,False,
@@ -484,7 +433,6 @@ Scan_Date,Run_Time,Run_Label,Stock,Company_Name,Predicted_Buy_Date,Predicted_Buy
 2026-06-18,12:46,Live 18:06 IST,GALLANTT.NS,Gallantt Ispat Limited,19 Jun 2026,739.61,742.5,2026-06-19,0.39,OVER,True,
 2026-06-19,13:08,Live 18:27 IST,CPPLUS.NS,ADITYA INFOTECH LIMITED,22 Jun 2026,3645.28,3670.0,2026-06-22,0.68,OVER,True,
 2026-06-18,12:46,Live 18:06 IST,AUROPHARMA.NS,Aurobindo Pharma Limited,23 Jun 2026,1442.91,1492.2,2026-06-23,3.42,OVER,False,
-2026-04-30,07:32,Live 12:52 IST,HFCL.NS,HFCL Limited,24 Jun 2026,106.37,202.0,2026-06-24,89.9,OVER,False,
 2026-06-17,13:10,Live 18:29 IST,STARHEALTH.NS,Star Health and Allied Insurance Company Limited,24 Jun 2026,532.77,578.55,2026-06-24,8.59,OVER,False,
 2026-06-23,12:31,Live 17:49 IST,GALLANTT.NS,Gallantt Ispat Limited,24 Jun 2026,738.45,732.2,2026-06-24,-0.85,UNDER,True,
 2026-05-22,12:14,Live 17:32 IST,JAINREC.NS,JAIN RESOURCE RECYCLING L,25 Jun 2026,371.68,364.2,2026-06-25,-2.01,UNDER,True,
@@ -852,3 +800,8 @@ Scan_Date,Run_Time,Run_Label,Stock,Company_Name,Predicted_Buy_Date,Predicted_Buy
 2026-10-26,16:25,Live 21:43 IST,DIVISLAB.NS,Divi's Laboratories Limited,27 Oct 2026,9055.01,9090.0,2026-10-27,0.39,OVER,True,
 2026-10-26,16:25,Live 21:43 IST,IPCALAB.NS,Ipca Laboratories Limited,27 Oct 2026,1939.33,1949.7,2026-10-27,0.53,OVER,True,
 2026-10-26,16:25,Live 21:43 IST,TITAN.NS,Titan Company Limited,27 Oct 2026,4325.72,4303.0,2026-10-27,-0.53,UNDER,True,
+2026-10-27,09:31,Daily 2026-10-27,KPRMILL.NS,K.P.R. Mill Limited,28 Oct 2026,1017.08,1040.3,2026-10-28,2.28,OVER,True,
+2026-10-27,13:25,Live 18:43 IST,MINDACORP.NS,Minda Corporation Limited,28 Oct 2026,610.24,608.35,2026-10-28,-0.31,UNDER,True,
+2026-10-27,15:40,Live 20:57 IST,SIEMENS.NS,Siemens Limited,28 Oct 2026,3338.77,3345.0,2026-10-28,0.19,OVER,True,
+2026-10-27,15:40,Live 20:57 IST,STLTECH.NS,Sterlite Technologies Limited,28 Oct 2026,913.61,919.0,2026-10-28,0.59,OVER,True,
+2026-10-27,15:40,Live 20:57 IST,NUVAMA.NS,Nuvama Wealth Management Limited,28 Oct 2026,1689.77,1690.8,2026-10-28,0.06,OVER,True,

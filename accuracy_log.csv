@@ -691,3 +691,4 @@ Scan_Date,Run_Time,Run_Label,Stock,Company_Name,Predicted_Buy_Date,Predicted_Buy
 2026-11-03,17:24,Live 22:41 IST,IDEA.NS,Vodafone Idea Limited,04 Nov 2026,12.27,12.19,2026-11-04,-0.65,UNDER,True,
 2026-11-04,17:33,Live 22:53 IST,LODHA.NS,Lodha Developers Limited,05 Nov 2026,1121.61,1135.0,2026-11-05,1.19,OVER,True,
 2026-11-04,17:33,Live 22:53 IST,CEMPRO.NS,Cemindia Projects Limited,05 Nov 2026,1311.72,1328.0,2026-11-05,1.24,OVER,True,
+2026-11-02,19:50,Live 01:09 IST,PIRAMALFIN.NS,Piramal Finance Limited,06 Nov 2026,1809.14,2050.0,2026-11-06,13.31,OVER,False,

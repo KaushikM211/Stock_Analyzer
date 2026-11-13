@@ -562,3 +562,5 @@ Scan_Date,Run_Time,Run_Label,Stock,Company_Name,Predicted_Buy_Date,Predicted_Buy
 2026-11-06,17:04,Live 22:21 IST,GROWW.NS,Billionbrains Garage Ventures Limited,11 Nov 2026,214.68,223.0,2026-11-11,3.88,OVER,False,
 2026-11-09,20:07,Live 01:26 IST,TDPOWERSYS.NS,TD Power Systems Limited,10 Nov 2026,571.91,580.35,2026-11-11,1.48,OVER,True,Checked on 2026-11-11 (next trading day after 10 Nov 2026)
 2026-09-03,13:53,Live 19:12 IST,ATGL.NS,Adani Total Gas Limited,12 Nov 2026,609.37,583.0,2026-11-12,-4.33,UNDER,False,
+2026-10-07,15:57,Live 21:15 IST,HFCL.NS,HFCL Limited,13 Nov 2026,271.79,208.0,2026-11-13,-23.47,UNDER,False,
+2026-11-11,17:30,Live 22:48 IST,RUBICON.NS,Rubicon Research Limited,13 Nov 2026,1729.06,1717.3,2026-11-13,-0.68,UNDER,True,

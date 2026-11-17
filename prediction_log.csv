@@ -261,31 +261,31 @@ Scan_Date,Run_Time,Run_Label,Stock,Company_Name,Predicted_Buy_Date,Predicted_Buy
 2026-11-06,17:04,Live 22:21 IST,NEULANDLAB.NS,Neuland Laboratories Limited,09 Nov 2026,19732.53
 2026-11-06,17:04,Live 22:21 IST,CPPLUS.NS,Aditya Infotech Limited,15 Jan 2027,4112.22
 2026-11-06,17:04,Live 22:21 IST,KIRLOSENG.NS,Kirloskar Oil Engines Limited,18 Nov 2026,1573.72
-2026-11-09,20:07,Live 01:26 IST,ICICIAMC.NS,ICICI Prudential Asset Management Company Limited,08 Dec 2026,2953.11
 2026-11-09,20:07,Live 01:26 IST,ELGIEQUIP.NS,Elgi Equipments Limited,15 Jan 2027,551.94
 2026-11-09,20:07,Live 01:26 IST,FLUOROCHEM.NS,Gujarat Fluorochemicals Limited,23 Nov 2026,4576.4
 2026-11-09,20:07,Live 01:26 IST,TDPOWERSYS.NS,TD Power Systems Limited,10 Nov 2026,571.91
 2026-11-11,17:30,Live 22:48 IST,FINCABLES.NS,Finolex Cables Limited,26 Nov 2026,1219.45
-2026-11-11,17:30,Live 22:48 IST,RUBICON.NS,Rubicon Research Limited,13 Nov 2026,1729.06
 2026-11-11,17:30,Live 22:48 IST,JINDALSAW.NS,Jindal Saw Limited,01 Jan 2027,248.04
 2026-11-13,17:24,Live 22:47 IST,BBOX.NS,Black Box Limited,16 Nov 2026,903.14
 2026-11-13,17:24,Live 22:47 IST,DATAPATTNS.NS,Data Patterns (India) Limited,19 Nov 2026,4264.33
 2026-11-13,17:24,Live 22:47 IST,AZAD.NS,Azad Engineering Limited,18 Nov 2026,2453.64
 2026-11-13,17:24,Live 22:47 IST,GLAND.NS,Gland Pharma Limited,14 Dec 2026,3308.61
 2026-11-16,17:11,Live 22:33 IST,MANAPPURAM.NS,Manappuram Finance Limited,18 Nov 2026,303.46
-2026-11-16,17:41,Live 23:02 IST,AARTIIND.NS,Aarti Industries Limited,09 Dec 2026,468.82
 2026-11-16,19:00,Live 00:23 IST,MEDANTA.NS,Global Health Limited,22 Jan 2027,1442.7
-2026-11-16,19:54,Live 01:14 IST,ACE.NS,Action Construction Equipment Limited,26 Nov 2026,1179.27
-2026-11-16,19:54,Live 01:14 IST,IFCI.NS,IFCI Limited,18 Nov 2026,62.19
-2026-11-16,19:54,Live 01:14 IST,TMCV.NS,Tata Motors Limited,27 Nov 2026,434.09
-2026-11-16,19:54,Live 01:14 IST,CARBORUNIV.NS,Carborundum Universal Limited,19 Nov 2026,1061.2
-2026-11-16,19:54,Live 01:14 IST,OFSS.NS,Oracle Financial Services Software Limited,23 Nov 2026,9908.54
-2026-11-16,19:54,Live 01:14 IST,ANTHEM.NS,Anthem Biosciences Limited,22 Jan 2027,923.95
 2026-11-16,19:54,Live 01:14 IST,CAPLIPOINT.NS,Caplin Point Laboratories Limited,18 Nov 2026,2388.22
 2026-11-16,19:54,Live 01:14 IST,ADANIENSOL.NS,Adani Energy Solutions Limited,25 Nov 2026,1434.55
-2026-11-16,19:54,Live 01:14 IST,INOXINDIA.NS,INOX India Limited,19 Nov 2026,1964.54
-2026-11-16,19:54,Live 01:14 IST,VIJAYA.NS,Vijaya Diagnostic Centre Limited,16 Nov 2026,1411.22
-2026-11-16,19:54,Live 01:14 IST,CARTRADE.NS,CarTrade Tech Limited,18 Nov 2026,2693.33
-2026-11-16,19:54,Live 01:14 IST,LLOYDSME.NS,Lloyds Metals and Energy Limited,18 Nov 2026,1786.31
-2026-11-16,19:54,Live 01:14 IST,LENSKART.NS,Lenskart Solutions Limited,09 Dec 2026,726.27
-2026-11-16,19:54,Live 01:14 IST,RRKABEL.NS,R R Kabel Limited,19 Nov 2026,1979.96
+2026-11-17,12:43,Daily 2026-11-17,AARTIIND.NS,Aarti Industries Limited,09 Dec 2026,464.84
+2026-11-17,12:43,Daily 2026-11-17,ACE.NS,Action Construction Equipment Limited,26 Nov 2026,1172.94
+2026-11-17,12:43,Daily 2026-11-17,CARBORUNIV.NS,Carborundum Universal Limited,19 Nov 2026,1013.65
+2026-11-17,12:43,Daily 2026-11-17,IFCI.NS,IFCI Limited,18 Nov 2026,61.63
+2026-11-17,12:43,Daily 2026-11-17,OFSS.NS,Oracle Financial Services Software Limited,23 Nov 2026,9719.24
+2026-11-17,12:43,Daily 2026-11-17,ANTHEM.NS,Anthem Biosciences Limited,25 Jan 2027,910.95
+2026-11-17,12:43,Daily 2026-11-17,ICICIAMC.NS,ICICI Prudential Asset Management Company Limited,09 Dec 2026,2980.54
+2026-11-17,12:43,Daily 2026-11-17,TMCV.NS,Tata Motors Limited,27 Nov 2026,445.33
+2026-11-17,12:43,Daily 2026-11-17,CARTRADE.NS,CarTrade Tech Limited,02 Dec 2026,2612.19
+2026-11-17,12:43,Daily 2026-11-17,INOXINDIA.NS,INOX India Limited,19 Nov 2026,1968.73
+2026-11-17,12:43,Daily 2026-11-17,LLOYDSME.NS,Lloyds Metals and Energy Limited,18 Nov 2026,1747.7
+2026-11-17,12:43,Daily 2026-11-17,VIJAYA.NS,Vijaya Diagnostic Centre Limited,18 Nov 2026,1468.07
+2026-11-17,12:43,Daily 2026-11-17,LENSKART.NS,Lenskart Solutions Limited,11 Dec 2026,736.06
+2026-11-17,12:43,Daily 2026-11-17,RUBICON.NS,Rubicon Research Limited,08 Dec 2026,1675.9
+2026-11-17,12:43,Daily 2026-11-17,RRKABEL.NS,R R Kabel Limited,25 Nov 2026,1852.44

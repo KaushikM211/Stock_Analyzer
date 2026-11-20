@@ -448,3 +448,4 @@ Scan_Date,Run_Time,Run_Label,Stock,Company_Name,Predicted_Buy_Date,Predicted_Buy
 2026-11-13,17:24,Live 22:47 IST,DATAPATTNS.NS,Data Patterns (India) Limited,19 Nov 2026,4264.33,4126.3,2026-11-19,-3.24,UNDER,False,
 2026-11-18,18:28,Live 23:45 IST,MANAPPURAM.NS,Manappuram Finance Limited,19 Nov 2026,283.41,280.6,2026-11-19,-0.99,UNDER,True,
 2026-11-18,18:28,Live 23:45 IST,INDHOTEL.NS,The Indian Hotels Company Limited,19 Nov 2026,875.35,875.05,2026-11-19,-0.03,UNDER,True,
+2026-11-19,18:35,Live 23:56 IST,VIJAYA.NS,Vijaya Diagnostic Centre Limited,19 Nov 2026,1532.36,1536.0,2026-11-19,0.24,OVER,True,
